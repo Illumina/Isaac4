@@ -1,0 +1,62 @@
+## Isaac Genome Alignment Software
+## Copyright (c) 2010-2014 Illumina, Inc.
+## All rights reserved.
+##
+## This software is provided under the terms and conditions of the
+## GNU GENERAL PUBLIC LICENSE Version 3
+##
+## You should have received a copy of the GNU GENERAL PUBLIC LICENSE Version 3
+## along with this program. If not, see
+## <https://github.com/illumina/licenses/>.
+
+Installing the Isaac Genome Alignment Software
+==============================================
+
+Prerequisites:
+--------------
+
+- gnuplot (>= 4.0) (required during the execution)
+- libnuma (if --with-numa is used)
+- libz
+- gcc (>= 4.7.3), for compilation
+- markdown tool will be used if available to generate html user manual
+
+Building on Linux:
+------------
+
+Isaac _must_ be built outside of the source directory. The steps are the usual
+configure/make/make install. 
+
+mkdir Isaac-build
+cd Isaac-build
+/path/to/Isaac/src/configure --prefix=/path/to/Isaac-install
+make
+make install
+
+For additional options:
+
+/path/to/Isaac/src/configure --help
+
+
+
+Building on Windows:
+--------------------
+
+Install 64-bit Windows (Windows 7 or higher)
+Install Visual Studio 2015
+Install Intel C++ Compiler 16.0
+Install latest CMake - cmake.org/download
+
+Goto main isaac directory
+
+mkdir Isaac-build
+cd Isaac-build
+cmake -G"Visual Studio 14 2015 Win64" -T"Intel C++ Compiler 16.0" -DiSAAC_PREFIX=isaac-install -DCMAKE_BUILD_TYPE=RelWithDebInfo /path/to/iSAAC/src
+make
+make install
+
+For building from within Visual Studio IDE
+------------------------------------------
+Open iSAAC.sln in Visual Studio
+Build from Visual Studio
+After Visual Studio build completes, running 'make install' is still required from command line

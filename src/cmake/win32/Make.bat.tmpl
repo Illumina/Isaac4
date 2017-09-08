@@ -1,0 +1,22 @@
+@echo off
+
+set CURRENT_DIR=%~dp0
+set INSTALL_DIR=${iSAAC_PREFIX}
+set CONFIG=${CMAKE_BUILD_TYPE}
+
+if /I "%1" == "install" goto install
+
+if "%VisualStudioVersion%" == "" call "%ProgramFiles(x86)%\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
+devenv iSAAC.sln /build %CONFIG%
+
+exit /b 0
+
+:install
+
+mkdir %INSTALL_DIR%
+
+copy "%CURRENT_DIR%c++\bin\%CONFIG%\isaac-align.exe" "%INSTALL_DIR%" /Y
+copy "%CURRENT_DIR%c++\bin\%CONFIG%\isaac-reorder-reference.exe" "%INSTALL_DIR%" /Y
+
+copy "%CURRENT_DIR%c++\libexec\%CONFIG%\mergeReferences.exe" "%INSTALL_DIR%" /Y
+copy "%CURRENT_DIR%c++\libexec\%CONFIG%\printContigs.exe" "%INSTALL_DIR%" /Y
