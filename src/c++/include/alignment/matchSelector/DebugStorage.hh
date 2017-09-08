@@ -1,6 +1,6 @@
 /**
  ** Isaac Genome Alignment Software
- ** Copyright (c) 2010-2014 Illumina, Inc.
+ ** Copyright (c) 2010-2017 Illumina, Inc.
  ** All rights reserved.
  **
  ** This software is provided under the terms and conditions of the
@@ -235,7 +235,7 @@ public:
     }
 
 private:
-    void updateMapqStats(
+    int updateMapqStats(
             const BamTemplate& bamTemplate,
             const unsigned barcodeIdx);
     bool restoreOriginal(

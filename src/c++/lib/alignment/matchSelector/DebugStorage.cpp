@@ -1,6 +1,6 @@
 /**
  ** Isaac Genome Alignment Software
- ** Copyright (c) 2010-2014 Illumina, Inc.
+ ** Copyright (c) 2010-2017 Illumina, Inc.
  ** All rights reserved.
  **
  ** This software is provided under the terms and conditions of the
@@ -127,12 +127,13 @@ bool DebugStorage::restoreOriginal(
             oriPos.getPosition(),
             originalCigars_.at(readNumber - 1).at(threadNumber),
             0);
+//        ISAAC_THREAD_CERR << "Original: " << fragment << std::endl;
     }
     return true;
 }
 
 
-void DebugStorage::updateMapqStats(
+int DebugStorage::updateMapqStats(
     const BamTemplate& bamTemplate,
     const unsigned barcodeIdx)
 {
@@ -143,12 +144,14 @@ void DebugStorage::updateMapqStats(
         const isaac::alignment::FragmentMetadata &r1 = bamTemplate.getFragmentMetadata(1);
         unsigned int secondReadNumber = flowcell_.getReadMetadataList().at(r1.getReadIndex()).getNumber();
 
-        pairMapqStatistics_[barcodeQQR1Paths_.getSampleIndex(barcodeIdx)].updateStat(bamTemplate, firstReadNumber, r0, &r1);
-        pairMapqStatistics_[barcodeQQR1Paths_.getSampleIndex(barcodeIdx)].updateStat(bamTemplate, secondReadNumber, r1, &r0);
+        return
+            pairMapqStatistics_[barcodeQQR1Paths_.getSampleIndex(barcodeIdx)].updateStat(bamTemplate, firstReadNumber, r0, &r1) |
+            pairMapqStatistics_[barcodeQQR1Paths_.getSampleIndex(barcodeIdx)].updateStat(bamTemplate, secondReadNumber, r1, &r0) << 1;
     }
     else
     {
-        pairMapqStatistics_[barcodeQQR1Paths_.getSampleIndex(barcodeIdx)].updateStat(bamTemplate, firstReadNumber, r0, 0);
+        return
+            pairMapqStatistics_[barcodeQQR1Paths_.getSampleIndex(barcodeIdx)].updateStat(bamTemplate, firstReadNumber, r0, 0);
     }
 }
 
@@ -158,91 +161,112 @@ void DebugStorage::store(
     const unsigned barcodeIdx,
     const unsigned threadNumber)
 {
-    updateMapqStats(bamTemplate, barcodeIdx);
+    const int storeMask = updateMapqStats(bamTemplate, barcodeIdx);
+
     BamTemplate originalTemplate = bamTemplate;
-    bool originalRestored = true;
     const isaac::alignment::FragmentMetadata &r1Aligned = bamTemplate.getFragmentMetadata(0);
     const unsigned int r1Number = flowcell_.getReadMetadataList().at(r1Aligned.getReadIndex()).getNumber();
     bool changed = false;//!r1.isAligned();
 
 //    ISAAC_THREAD_CERR<< "Checking: " << r1Aligned << " " << originalTemplate.getAlignmentScore() << "AS" << std::endl;
 
-    if (r1Aligned.hasMapQ() &&
-        !alignment::containsHomopolymer(r1Aligned.getStrandSequence().begin(), r1Aligned.getStrandSequence().end()) &&
-        !debugStorage::alignsCorrectly(r1Number, r1Aligned))
-    {
-        changed = true;
-        if (r1Aligned.mapQ >= 40)
-        {
-            ISAAC_THREAD_CERR<< "Misaligned: " << r1Aligned << " " << originalTemplate.getAlignmentScore() << "AS" << std::endl;
-        }
-    }
-
-    isaac::alignment::FragmentMetadata &r1 = originalTemplate.getFragmentMetadata(0);
+    bool storeOriginal = false;
+    isaac::alignment::FragmentMetadata r1 = originalTemplate.getFragmentMetadata(0);
     r1QqStatistics_[barcodeQQR1Paths_.getSampleIndex(barcodeIdx)].updateStat(0, bamTemplate, true);
     if (restoreOriginal(threadNumber, flowcell_.getReadMetadataList().at(r1.getReadIndex()).getNumber(), r1))
     {
-        r1QqOriginalStatistics_[barcodeQQR1Paths_.getSampleIndex(barcodeIdx)].updateStat(0, originalTemplate, false);
-    }
-    else
-    {
-        originalRestored = false;
-    }
-    if (2 == bamTemplate.getFragmentCount())
-    {
-        isaac::alignment::FragmentMetadata &r2 = originalTemplate.getFragmentMetadata(1);
-        r2QqStatistics_[barcodeQQR1Paths_.getSampleIndex(barcodeIdx)].updateStat(1, bamTemplate, true);
-        // use aligned, not original r1
-        const isaac::alignment::FragmentMetadata &r2Aligned = bamTemplate.getFragmentMetadata(1);
-        unsigned int r2Number = flowcell_.getReadMetadataList().at(r2Aligned.getReadIndex()).getNumber();
-//        ISAAC_THREAD_CERR<< "Checking: " << r2Aligned << " " << originalTemplate.getAlignmentScore() << "AS" << std::endl;
-        if (r2Aligned.hasMapQ() &&
-            !alignment::containsHomopolymer(r2Aligned.getStrandSequence().begin(), r2Aligned.getStrandSequence().end()) &&
-            !debugStorage::alignsCorrectly(r2Number, r2Aligned))
+        if (r1Aligned.hasMapQ() &&
+            !debugStorage::alignsCorrectly(r1Number, r1Aligned))
         {
             changed = true;
-            if (r2Aligned.mapQ >= 40)
+            if (r1Aligned.mapQ >= 40 && !r1Aligned.gapCount && !r1.gapCount)
             {
-                ISAAC_THREAD_CERR<< "Misaligned: " << r2Aligned << " " << originalTemplate.getAlignmentScore() << "AS" << std::endl;
+                ISAAC_THREAD_CERR<< "Misaligned: " << r1Aligned << " " << originalTemplate.getAlignmentScore() << "AS" << std::endl;
             }
         }
 
-//        if (!r1Aligned.isAligned() && !r2Aligned.isAligned())
-//        {
-//            ISAAC_THREAD_CERR<< "Unaligned: " << r1 << " " << r2 << std::endl;
-//        }
-//        store = r1Aligned.isAligned() != r2.isAligned();// && debugStorage::alignsCorrectly(r1Number, r1Aligned) && !debugStorage::alignsCorrectly(r2Number, r2);
-//        store = r1Aligned.isAligned() && r2Aligned.isAligned() && (
-//            (!debugStorage::alignsCorrectly(r1Number, r1Aligned) && r1Aligned.mapQ >= 30) ||
-//            (!debugStorage::alignsCorrectly(r2Number, r2Aligned) && r2Aligned.mapQ >= 30));
-//        store =
-//            (r1Aligned.isAligned() && !debugStorage::alignsCorrectly(r1Number, r1Aligned) && 46 <= r1Aligned.mapQ && r1Aligned.mapQ <= 58) ||
-//            (r2.isAligned() && !debugStorage::alignsCorrectly(r2Number, r2) && 46 <= r2.mapQ && r2.mapQ <= 58);
-//        store = store || !r2.isAligned();
+        originalTemplate = BamTemplate(r1, originalTemplate.getFragmentMetadata(1),
+            originalTemplate.isProperPair(), originalTemplate.getAlignmentScore());
 
-//        store = r1Aligned.isAligned() && debugStorage::alignsCorrectly(r1Number, r1Aligned) && r2Aligned.isAligned() && debugStorage::alignsCorrectly(r2Number, r2Aligned) &&
-//            45 == r1Aligned.mapQ;
-
-//        store |= r2.getCluster().getId() == 1761956 || r2Aligned.gapCount || (r2Aligned.isAligned() && debugStorage::alignsCorrectly(r2Number, r2Aligned) && r2Aligned.mismatchCount > 20 && r2Aligned.secondBestMismatchDelta);
-
-        if (restoreOriginal(threadNumber, r2Number, r2))
+        if (2 == bamTemplate.getFragmentCount())
         {
-            r2QqOriginalStatistics_[barcodeQQR1Paths_.getSampleIndex(barcodeIdx)].updateStat(1, originalTemplate, false);
+            isaac::alignment::FragmentMetadata r2 = originalTemplate.getFragmentMetadata(1);
+            r2QqStatistics_[barcodeQQR1Paths_.getSampleIndex(barcodeIdx)].updateStat(1, bamTemplate, true);
+            // use aligned, not original r1
+            const isaac::alignment::FragmentMetadata &r2Aligned = bamTemplate.getFragmentMetadata(1);
+            unsigned int r2Number = flowcell_.getReadMetadataList().at(r2Aligned.getReadIndex()).getNumber();
+    //        ISAAC_THREAD_CERR<< "Checking: " << r2Aligned << " " << originalTemplate.getAlignmentScore() << "AS" << std::endl;
+    //        if (!r1Aligned.isAligned() && !r2Aligned.isAligned())
+    //        {
+    //            ISAAC_THREAD_CERR<< "Unaligned: " << r1 << " " << r2 << std::endl;
+    //        }
+    //        store = r1Aligned.isAligned() != r2.isAligned();// && debugStorage::alignsCorrectly(r1Number, r1Aligned) && !debugStorage::alignsCorrectly(r2Number, r2);
+    //        store = r1Aligned.isAligned() && r2Aligned.isAligned() && (
+    //            (!debugStorage::alignsCorrectly(r1Number, r1Aligned) && r1Aligned.mapQ >= 30) ||
+    //            (!debugStorage::alignsCorrectly(r2Number, r2Aligned) && r2Aligned.mapQ >= 30));
+    //        store =
+    //            (r1Aligned.isAligned() && !debugStorage::alignsCorrectly(r1Number, r1Aligned) && 46 <= r1Aligned.mapQ && r1Aligned.mapQ <= 58) ||
+    //            (r2.isAligned() && !debugStorage::alignsCorrectly(r2Number, r2) && 46 <= r2.mapQ && r2.mapQ <= 58);
+    //        store = store || !r2.isAligned();
+
+    //        store = r1Aligned.isAligned() && debugStorage::alignsCorrectly(r1Number, r1Aligned) && r2Aligned.isAligned() && debugStorage::alignsCorrectly(r2Number, r2Aligned) &&
+    //            45 == r1Aligned.mapQ;
+
+    //        store |= r2.getCluster().getId() == 1761956 || r2Aligned.gapCount || (r2Aligned.isAligned() && debugStorage::alignsCorrectly(r2Number, r2Aligned) && r2Aligned.mismatchCount > 20 && r2Aligned.secondBestMismatchDelta);
+
+            if (restoreOriginal(threadNumber, r2Number, r2))
+            {
+                originalTemplate = BamTemplate(originalTemplate.getFragmentMetadata(0), r2,
+                    originalTemplate.isProperPair(), originalTemplate.getAlignmentScore());
+
+                r2QqOriginalStatistics_[barcodeQQR1Paths_.getSampleIndex(barcodeIdx)].updateStat(1, originalTemplate, false);
+                storeOriginal = true;
+            }
+
+            if (r2Aligned.hasMapQ() &&
+                !debugStorage::alignsCorrectly(r2Number, r2Aligned))
+            {
+                changed = true;
+                if (r2Aligned.mapQ >= 40 && !r2Aligned.gapCount && !r2.gapCount)
+                {
+                    ISAAC_THREAD_CERR<< "Misaligned: " << r2Aligned << " " << originalTemplate.getAlignmentScore() << "AS" << std::endl;
+                }
+            }
+
+
         }
         else
         {
-            originalRestored = false;
+            storeOriginal = true;
         }
+        r1QqOriginalStatistics_[barcodeQQR1Paths_.getSampleIndex(barcodeIdx)].updateStat(0, originalTemplate, false);
     }
 
 //    store = r1Aligned.isAligned() && debugStorage::alignsCorrectly(r1Number, r1Aligned) && 45 <= r1Aligned.mapQ && r1Aligned.mapQ <= 59;
 //    store |= r1.getCluster().getId() == 1761956 || r1Aligned.gapCount || (r1Aligned.isAligned() && debugStorage::alignsCorrectly(r1Number, r1Aligned) && r1Aligned.mismatchCount > 20 && r1Aligned.secondBestMismatchDelta);
-    actualStorage_.store(bamTemplate, barcodeIdx, threadNumber);
+    if (storeMask)
+    {
+//        if (!(storeMask & 1))
+//        {
+//            BamTemplate storeTemplate = BamTemplate(bamTemplate.getFragmentMetadata(1));
+//            actualStorage_.store(storeTemplate, barcodeIdx, threadNumber);
+//        }
+//        else if (!(storeMask & 2))
+//        {
+//            BamTemplate storeTemplate = BamTemplate(bamTemplate.getFragmentMetadata(0));
+//            actualStorage_.store(storeTemplate, barcodeIdx, threadNumber);
+//        }
+//        else
+        {
+            actualStorage_.store(bamTemplate, barcodeIdx, threadNumber);
+        }
+
+    }
     if (changed)
     {
 //        actualStorage_.store(originalTemplate, barcodeIdx);
         actualStorage_.store(bamTemplate, barcodeIdx + 2, threadNumber);
-        if (originalRestored)
+        if (storeOriginal)
         {
             actualStorage_.store(originalTemplate, barcodeIdx + 3, threadNumber);
         }

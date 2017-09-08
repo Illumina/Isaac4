@@ -1,6 +1,6 @@
 /**
  ** Isaac Genome Alignment Software
- ** Copyright (c) 2010-2014 Illumina, Inc.
+ ** Copyright (c) 2010-2017 Illumina, Inc.
  ** All rights reserved.
  **
  ** This software is provided under the terms and conditions of the
@@ -61,7 +61,7 @@ TemplateBuilder::TemplateBuilder(
     const bool splitAlignments,
     const AlignmentCfg &alignmentCfg,
     const DodgyAlignmentScore dodgyAlignmentScore,
-    const unsigned anomalousPairScoreMin,
+    const unsigned anomalousPairHandicap,
     const bool reserveBuffers)
     : repeatThreshold_(repeatThreshold)
     , seedLength_(seedLength)
@@ -72,7 +72,7 @@ TemplateBuilder::TemplateBuilder(
     , rescueShadows_(rescueShadows)
     , anchorMate_(anchorMate)
     , dodgyAlignmentScore_(dodgyAlignmentScore)
-    , anomalousPairScoreMin_(anomalousPairScoreMin)
+    , anomalousPairHandicap_(pow10(double(anomalousPairHandicap) / 10.0) - 1.0)//anomalousPairHandicap)
     , flowcellLayoutList_(flowcellLayoutList)
     , smitWatermanGapsMax_(smitWatermanGapsMax)
     , splitAlignments_(splitAlignments)
@@ -96,11 +96,13 @@ TemplateBuilder::TemplateBuilder(
     {
 //        ISAAC_TRACE_STAT("TemplateBuilder before cigarBuffer_.reserve");
         // if smith waterman is enabled, each candidate may produce up to one more gapped cigar
+        const bool gapsPossible = std::max<unsigned>(smitWatermanGapsMax, splitAlignments);
         cigarBuffer_.reserve(
             // Cigar::getMaxOperationsForReads already accounts for read pairing
-            Cigar::getMaxOperationsForReads(flowcellLayoutList, std::max<unsigned>(smitWatermanGapsMax, splitAlignments)) * candidateMatchesMax +
+            Cigar::getMaxOperationsForReads(flowcellLayoutList, false) +
+            gapsPossible * Cigar::getMaxOperationsForReads(flowcellLayoutList, true) * repeatThreshold_ +
             rescueShadows_ ?
-                Cigar::getMaxOperationsForReads(flowcellLayoutList, std::max<unsigned>(smitWatermanGapsMax, splitAlignments)) *
+                Cigar::getMaxOperationsForReads(flowcellLayoutList, gapsPossible) *
                 std::max(matchFinderTooManyRepeats, std::max(matchFinderWayTooManyRepeats, matchFinderShadowSplitRepeats)) : 0);
 
         ISAAC_TRACE_STAT("TemplateBuilder before shadowList_.reserve");
@@ -113,7 +115,9 @@ TemplateBuilder::TemplateBuilder(
         bestRescuedPair_.reserve(repeatThreshold_, repeatThreshold_);
         ISAAC_TRACE_STAT("TemplateBuilder before candidates_.reserve");
         // each candidate can have up to 1 gapped alignment
-        std::for_each(candidates_.begin(), candidates_.end(), boost::bind(&FragmentMetadataList::reserve, _1, candidateMatchesMax * 2));
+        std::for_each(
+            candidates_.begin(), candidates_.end(), boost::bind(&FragmentMetadataList::reserve, _1,
+            repeatThreshold_ + gapsPossible * repeatThreshold_));
         ISAAC_TRACE_STAT("TemplateBuilder after candidates_.reserve");
     }
 }
@@ -130,14 +134,12 @@ templateBuilder::AlignmentType TemplateBuilder::flagDodgyTemplate(BamTemplate &b
     if (DODGY_ALIGNMENT_SCORE_UNALIGNED == dodgyAlignmentScore_)
     {
         // both must sort into unaligned bin. setUnaligned will not do it.
-        bamTemplate.getFragmentMetadata(0).setNoMatch();
-        bamTemplate.getFragmentMetadata(1).setNoMatch();
+        bamTemplate.setNoMatch();
         return Rm;
     }
     else
     {
-        bamTemplate.getFragmentMetadata(0).mapQ = dodgyAlignmentScore_;
-        bamTemplate.getFragmentMetadata(1).mapQ = dodgyAlignmentScore_;
+        bamTemplate.setDodgy(dodgyAlignmentScore_);
     }
     return Normal;
 }
@@ -246,7 +248,7 @@ bool TemplateBuilder::locateBestAnchoredPair(
             ISAAC_ASSERT_MSG(!r1Fragment->isBetterGapped(*bestR1) || !r1Fragment->isBetterUngapped(*bestR1), "Incorrect candidate order. Expected sorted best on top " << *bestR1 << " vs " << *r1Fragment);
             break;
         }
-        for(FragmentIterator r2Fragment = fragments[1].begin(); bestPairsMax && fragments[1].end() != r2Fragment; ++r2Fragment)
+        for(FragmentIterator r2Fragment = fragments[1].begin(); bestPairsLeft && fragments[1].end() != r2Fragment; ++r2Fragment)
         {
             //ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(r2Fragment->getCluster().getId(), " locateBestAnchoredPair r2Fragment:" << *r2Fragment);
             if (!FragmentMetadata::alignmentsEquivalent(*bestR2, *r2Fragment))
@@ -254,7 +256,7 @@ bool TemplateBuilder::locateBestAnchoredPair(
                 ISAAC_ASSERT_MSG(!r2Fragment->isBetterGapped(*bestR2) || !r2Fragment->isBetterUngapped(*bestR2), "Incorrect candidate order. Expected sorted best on top " << *bestR2<< " vs " << *r2Fragment);
                 break;
             }
-            int res = updateBestAnchoredPair(anomalousPairScoreMin_, rog, tls, *r1Fragment, *r2Fragment, ret);
+            int res = updateBestAnchoredPair(anomalousPairHandicap_, rog, tls, *r1Fragment, *r2Fragment, ret);
             // not strictly counting best, as there is no guarantee that they come in best to worst order, but should be
             // a reasonable approximation to avoid accumulating insane number of repeats.
             if (-1 == res)
@@ -351,12 +353,12 @@ void TemplateBuilder::buildSingletonShadowTemplate(
     shadow.setUnaligned();
     shadow.readIndex = !orphanIndex;
 
-    bamTemplate = BamTemplate(orphanIndex ? shadow : bestOrphan, orphanIndex ? bestOrphan : shadow);
-
-    FragmentMetadata &orphan = bamTemplate.getFragmentMetadata(orphanIndex);
+    FragmentMetadata orphan = bestOrphan;
 
     orphan.alignmentScore = computeAlignmentScore(orphan, restOfGenomeCorrection, orphans);
     orphan.mapQ = alignmentScoreToMapq(orphan.alignmentScore);
+
+    bamTemplate = BamTemplate(orphanIndex ? shadow : orphan, orphanIndex ? orphan : shadow, false);
 }
 
 
@@ -381,24 +383,26 @@ void TemplateBuilder::scoreBestPair(
     BestPairInfo &bestPair,
     BamTemplate &bamTemplate) const
 {
-    FragmentMetadata &r1Alignment = bamTemplate.getFragmentMetadata(0);
-    FragmentMetadata &r2Alignment = bamTemplate.getFragmentMetadata(1);
+    FragmentMetadata r1Alignment = bamTemplate.getFragmentMetadata(0);
+    FragmentMetadata r2Alignment = bamTemplate.getFragmentMetadata(1);
 
     const double otherTemplateProbability =
         bestPair.sumUniquePairProbabilities(
             r1Alignment.logProbability + r2Alignment.logProbability,
             bestPair.repeatsCount(), bamTemplate.isProperPair());
-    bamTemplate.setAlignmentScore(computeAlignmentScore(
-        restOfGenomeCorrection.getRogCorrection(), bestPair.probability(), otherTemplateProbability));
+
+    const unsigned pairScore = computeAlignmentScore(
+        restOfGenomeCorrection.getRogCorrection(), bestPair.probability(), otherTemplateProbability);
 
     r1Alignment.alignmentScore = computeAlignmentScore(r1Alignment, restOfGenomeCorrection, fragments[0]);
     r2Alignment.alignmentScore = computeAlignmentScore(r2Alignment, restOfGenomeCorrection, fragments[1]);
 
     r1Alignment.mapQ = pickMapQ(
-        r1Alignment.alignmentScore, r2Alignment.alignmentScore, bamTemplate.isProperPair(), bamTemplate.getAlignmentScore());
+        r1Alignment.alignmentScore, r2Alignment.alignmentScore, bamTemplate.isProperPair(), pairScore);
     r2Alignment.mapQ = pickMapQ(
-        r2Alignment.alignmentScore, r1Alignment.alignmentScore, bamTemplate.isProperPair(), bamTemplate.getAlignmentScore());
+        r2Alignment.alignmentScore, r1Alignment.alignmentScore, bamTemplate.isProperPair(), pairScore);
 
+    bamTemplate = BamTemplate(r1Alignment, r2Alignment, bamTemplate.isProperPair(), pairScore);
 
     ISAAC_ASSERT_MSG(
         bamTemplate.getAlignmentScore() < 4 || 1 == bestPair.repeatsCount() ,
@@ -417,10 +421,10 @@ void TemplateBuilder::pickBestFragment(
 
     typedef FragmentMetadataList::const_iterator FragmentIterator;
     const FragmentIterator bestFragment = getBestFragment(fragmentList);
-    FragmentMetadata &fragment = result.getFragmentMetadata(0);
-    fragment = *bestFragment;
+    FragmentMetadata fragment = *bestFragment;
     fragment.alignmentScore = computeAlignmentScore(fragment, restOfGenomeCorrection, fragmentList);
     fragment.mapQ = alignmentScoreToMapq(fragment.alignmentScore);
+    result = BamTemplate(fragment);
     ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(fragmentList.front().getCluster().getId(), "Single-ended template: " << result.getFragmentMetadata(0));
 }
 
@@ -443,14 +447,16 @@ bool TemplateBuilder::pickBestPair(
     bestCombinationPairInfo_.removeRepeatDuplicates();
     pickRandomRepeatAlignment(fragments[0][0].getCluster().getId(), bestCombinationPairInfo_, bamTemplate);
 
+    FragmentMetadata read0 = bamTemplate.getFragmentMetadata(0);
+    FragmentMetadata read1 = bamTemplate.getFragmentMetadata(1);
     if (peAdapterTrimmer_.checkTrimPEAdapter(
-        contigList, readMetadataList, bamTemplate.getFragmentMetadata(0), bamTemplate.getFragmentMetadata(1), cigarBuffer_))
+        contigList, readMetadataList, read0, read1, cigarBuffer_))
     {
         // If best choice ended up to be shorter than read length PE template, we need to trim adapter ends and recompute log probabilities
         peAdapterTrimmer_.trimPEAdapterCycles(
-            contigList, readMetadataList, bamTemplate.getFragmentMetadata(0).highClipped, fragments[0], cigarBuffer_);
+            contigList, readMetadataList, read0.highClipped, fragments[0], cigarBuffer_);
         peAdapterTrimmer_.trimPEAdapterCycles(
-            contigList, readMetadataList, bamTemplate.getFragmentMetadata(1).highClipped, fragments[1], cigarBuffer_);
+            contigList, readMetadataList, read1.highClipped, fragments[1], cigarBuffer_);
 
         ISAAC_ASSERT_MSG(!fragments[0].empty(), "All fragments are gone after cycle trimming");
         ISAAC_ASSERT_MSG(!fragments[1].empty(), "All fragments are gone after cycle trimming");
@@ -496,7 +502,7 @@ void TemplateBuilder::trimShadowPairPEAdapaters(
         //repeat all pair building on trimmed fragments, but don't base best pair selection on the results
         //TODO: this is somewhat inefficient as we don't need to accumulate resulting pairs, only the pair probabilities
         ISAAC_ASSERT_MSG(!shadowList.empty(), "All fragments are gone after cycle trimming");
-        buildRescuedPairs(anomalousPairScoreMin_, contigList, rog, orphan, shadowList, tls, bestRescuedPair);
+        buildRescuedPairs(anomalousPairHandicap_, contigList, rog, orphan, shadowList, tls, bestRescuedPair);
     }
 }
 
@@ -531,8 +537,8 @@ void TemplateBuilder::trimDoublecheckedPairPEAdapaters(
 
         //repeat all pair building on trimmed fragments, but don't base best pair selection on the results
         //TODO: this is somewhat inefficient as we don't need to accumulate resulting pairs, only the pair probabilities
-        buildRescuedPairs(anomalousPairScoreMin_, contigList, rog, shadow.getReadIndex() ? orphan : shadow, shadowList[1], tls, bestRescuedPair);
-        buildRescuedPairs(anomalousPairScoreMin_, contigList, rog, orphan.getReadIndex() ? orphan : shadow, shadowList[0], tls, bestRescuedPair);
+        buildRescuedPairs(anomalousPairHandicap_, contigList, rog, shadow.getReadIndex() ? orphan : shadow, shadowList[1], tls, bestRescuedPair);
+        buildRescuedPairs(anomalousPairHandicap_, contigList, rog, orphan.getReadIndex() ? orphan : shadow, shadowList[0], tls, bestRescuedPair);
     }
 }
 
@@ -629,8 +635,7 @@ templateBuilder::AlignmentType TemplateBuilder::doubleCheckImproperPair(
             improperTemplate.getFragmentMetadata(1).getStrandReferencePosition() == shadowList[1].front().getStrandReferencePosition()
             )
         {
-            improperTemplate.getFragmentMetadata(0) = shadowList[0].front();
-            improperTemplate.getFragmentMetadata(1) = shadowList[1].front();
+            improperTemplate = BamTemplate(shadowList[0].front(), shadowList[1].front(), improperTemplate.isProperPair());
             ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(improperTemplate.getCluster().getId(),"doubleCheckImproperPair: rescued orphans on both sides. Assuming both mates cross same breakpoint: " << improperTemplate);
         }
         else
@@ -638,18 +643,18 @@ templateBuilder::AlignmentType TemplateBuilder::doubleCheckImproperPair(
             BamTemplate rescuedTemplate(improperTemplate);
             bestRescuedPair_.removeRepeatDuplicates();
             pickRandomRepeatAlignment(improperTemplate.getCluster().getId(), bestRescuedPair_, rescuedTemplate);
-            if (!improperTemplate.isBetterThan(anomalousPairScoreMin_, rog.getRogCorrection(), rescuedTemplate))
+            if (!improperTemplate.isBetterThan(anomalousPairHandicap_, rog.getRogCorrection(), rescuedTemplate))
             {
                 // figure out which orphan ended up producing best rescued pair
                 const unsigned orphanIndex = improperTemplate.getFragmentMetadata(1) == rescuedTemplate.getFragmentMetadata(1);
                 ISAAC_ASSERT_MSG(improperTemplate.getFragmentMetadata(orphanIndex) == rescuedTemplate.getFragmentMetadata(orphanIndex),
                                  "Orphan alignments must match between original and rescued:\n" << improperTemplate << "\n" << rescuedTemplate);
 
-                FragmentMetadata &orphan = rescuedTemplate.getFragmentMetadata(orphanIndex);
-                // when orphan gets re-rescued, the rescued version does not have the score and we need it to score shadow. Just move the score over
-                orphan.alignmentScore = improperTemplate.getFragmentMetadata(orphanIndex).alignmentScore;
-                orphan.mapQ = improperTemplate.getFragmentMetadata(orphanIndex).mapQ;
-                FragmentMetadata &shadow = rescuedTemplate.getFragmentMetadata(!orphanIndex);
+                FragmentMetadata orphan = rescuedTemplate.getFragmentMetadata(orphanIndex);
+                // score the assumed orphan using both seed and rescued candidates
+                scoreAnomalousEnd(rog, fragments[orphanIndex], shadowList[orphanIndex], orphan);
+
+                FragmentMetadata shadow = rescuedTemplate.getFragmentMetadata(!orphanIndex);
                 trimDoublecheckedPairPEAdapaters(
                         contigList, rog, readMetadataList, tls,
                         orphan, shadow,
@@ -658,19 +663,24 @@ templateBuilder::AlignmentType TemplateBuilder::doubleCheckImproperPair(
 
                 bestRescuedPair_.appendPairProbability(improperTemplate.getFragmentMetadata(orphanIndex), improperTemplate.getFragmentMetadata(!orphanIndex), false);
 
-                scoreRescuedShadowTemplate(rog, orphan.getReadIndex(), rescuedTemplate, bestRescuedPair_);
+                improperTemplate = BamTemplate(orphan, shadow, rescuedTemplate.isProperPair());
 
-                ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(orphan.getCluster().getId(),"doubleCheckImproperPair: rescued  template: " << rescuedTemplate);
-                improperTemplate = rescuedTemplate;
+                scoreRescuedShadowTemplate(rog, orphan.getReadIndex(), improperTemplate, bestRescuedPair_);
+
+                ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(orphan.getCluster().getId(),"doubleCheckImproperPair: rescued  template: " << improperTemplate);
                 // Don't fall through. The template scored.
                 return templateBuilder::Normal;
             }
             ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(improperTemplate.getCluster().getId(),"doubleCheckImproperPair: best rescued:\n" << rescuedTemplate <<
                 "\nis worse than improper:\n" << improperTemplate << " mq:" << computeAlignmentScore(rog.getRogCorrection(), exp(improperTemplate.getLogProbability()), exp(rescuedTemplate.getLogProbability())));
         }
+
+        FragmentMetadata read0 = improperTemplate.getFragmentMetadata(0);
+        FragmentMetadata read1 = improperTemplate.getFragmentMetadata(1);
         // score each end individually
-        scoreAnomalousEnd(rog, fragments[0], shadowList[0], improperTemplate.getFragmentMetadata(0));
-        scoreAnomalousEnd(rog, fragments[1], shadowList[1], improperTemplate.getFragmentMetadata(1));
+        scoreAnomalousEnd(rog, fragments[0], shadowList[0], read0);
+        scoreAnomalousEnd(rog, fragments[1], shadowList[1], read1);
+        improperTemplate = BamTemplate(read0, read1, improperTemplate.isProperPair(), improperTemplate.getAlignmentScore());
         ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(improperTemplate.getCluster().getId(),"doubleCheckImproperPair: recomputed anomalous end scores: " << improperTemplate);
     }
     else if (dodgySingleton(improperTemplate.getFragmentMetadata(0)) || dodgySingleton(improperTemplate.getFragmentMetadata(1)))

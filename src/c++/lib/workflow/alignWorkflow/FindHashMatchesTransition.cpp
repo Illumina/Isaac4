@@ -1,6 +1,6 @@
 /**
  ** Isaac Genome Alignment Software
- ** Copyright (c) 2010-2014 Illumina, Inc.
+ ** Copyright (c) 2010-2017 Illumina, Inc.
  ** All rights reserved.
  **
  ** This software is provided under the terms and conditions of the
@@ -245,7 +245,7 @@ FindHashMatchesTransition::FindHashMatchesTransition(
     const int minGapExtendScore,
     const unsigned splitGapLength,
     const alignment::TemplateBuilder::DodgyAlignmentScore dodgyAlignmentScore,
-    const unsigned anomalousPairScoreMin,
+    const unsigned anomalousPairHandicap,
     const bool qScoreBin,
     const boost::array<char, 256> &fullBclQScoreTable,
     const unsigned targetBinLength,
@@ -333,7 +333,7 @@ FindHashMatchesTransition::FindHashMatchesTransition(
         splitAlignments,
         alignmentCfg_,
         dodgyAlignmentScore,
-        anomalousPairScoreMin,
+        anomalousPairHandicap,
         common::ScopedMallocBlock::Strict == memoryControl_,
         detectTemplateBlockSize),
         qScoreBin_(qScoreBin),

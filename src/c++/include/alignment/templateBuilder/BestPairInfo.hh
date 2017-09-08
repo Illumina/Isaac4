@@ -1,6 +1,6 @@
 /**
  ** Isaac Genome Alignment Software
- ** Copyright (c) 2010-2014 Illumina, Inc.
+ ** Copyright (c) 2010-2017 Illumina, Inc.
  ** All rights reserved.
  **
  ** This software is provided under the terms and conditions of the
@@ -128,82 +128,51 @@ struct PairProbability
     }
 };
 
-struct PairInfo
-{
-    PairInfo() : logProbability_(-std::numeric_limits<double>::max()), swScore_(-1), matchModel_(false) {}
-    PairInfo(const FragmentMetadata &oneRead, const FragmentMetadata &anotherRead, bool matchModel):
-        logProbability_(oneRead.logProbability + anotherRead.logProbability),
-        swScore_(oneRead.smithWatermanScore + anotherRead.smithWatermanScore), matchModel_(matchModel) {}
-
-    void clear()
-    {
-        *this = PairInfo();
-    }
-
-    double probability() const {return exp(logProbability_);}
-
-    double logProbability_;
-    uint64_t swScore_;
-    bool matchModel_;
-
-    bool isWorseThan(
-        const unsigned minScore,
-        const RestOfGenomeCorrection &rog,
-        const PairInfo &that) const
-    {
-        if (matchModel_== that.matchModel_)
-        {
-            return ISAAC_LP_LESS(logProbability_, that.logProbability_) ||
-                (ISAAC_LP_EQUALS(logProbability_, that.logProbability_) && (that.swScore_ < swScore_));
-        }
-
-        const unsigned ourScoreGivenAlt = computeAlignmentScore(rog.getRogCorrection(), exp(logProbability_), exp(that.logProbability_));
-//        ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(0,"PairInfo::isWorseThan ourScoreGivenAlt: " << ourScoreGivenAlt << " minScore:" << minScore);
-        if (minScore <= ourScoreGivenAlt)
-        {
-            return false;
-        }
-
-        const unsigned altScoreGivenUs = computeAlignmentScore(rog.getRogCorrection(), exp(that.logProbability_), exp(logProbability_));
-//        ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(0,"PairInfo::isWorseThan altScoreGivenUs: " << altScoreGivenUs << " minScore:" << minScore);
-        if (minScore <= altScoreGivenUs)
-        {
-            return true;
-        }
-
-//        ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(0,"PairInfo::isWorseThan returning : " << !matchModel_);
-
-        return !matchModel_;
-    }
-
-    inline bool isAsGood(const PairInfo &that) const
-    {
-        return that.swScore_ == swScore_ &&
-            ISAAC_LP_EQUALS(that.logProbability_, logProbability_) &&
-            (matchModel_ == that.matchModel_);
-    }
-
-    friend std::ostream & operator << (std::ostream & os, const PairInfo& info)
-    {
-        return os << "PairInfo(" << info.logProbability_ << "lp " << info.swScore_ << "sws)";
-    }
-};
-
 template <typename RecordType, typename ContainerType>
-void pushProbability(const RecordType &probability, ContainerType &container)
+void pushProbability(RecordType &&probability, ContainerType &container)
 {
     if (container.end() != std::find(container.begin(), container.end(), probability))
     {
         return;
     }
-    container.push_back(probability);
-    // keep worst on top of the heap
-    std::push_heap(container.begin(), container.end(), [](const RecordType &left, const RecordType &right){return right < left;});
-    if (container.size() == container.capacity())
+
+    if (2 == container.capacity())
     {
-        std::pop_heap(container.begin(), container.end(), [](const RecordType &left, const RecordType &right){return right < left;});
-        // delete worst one
-        container.pop_back();
+        //special case for min size containers.
+        if (container.size() == container.capacity())
+        {
+            using std::swap;
+            if (container[1] < container[0])
+            {
+                if (container[1] < probability)
+                {
+                    swap(container[1], probability);
+                }
+            }
+            else
+            {
+                if (container[0] < probability)
+                {
+                    swap(container[0], probability);
+                }
+            }
+        }
+        else
+        {
+            container.push_back(probability);
+        }
+    }
+    else
+    {
+        container.push_back(probability);
+        // keep worst on top of the heap
+        std::push_heap(container.begin(), container.end(), [](const RecordType &left, const RecordType &right){return right < left;});
+        if (container.size() == container.capacity())
+        {
+            std::pop_heap(container.begin(), container.end(), [](const RecordType &left, const RecordType &right){return right < left;});
+            // delete worst one
+            container.pop_back();
+        }
     }
 }
 
@@ -302,11 +271,11 @@ struct BestPairInfo
     }
 
     bool isWorseThan(
-        const unsigned anomalousPairScoreMin,
-        const RestOfGenomeCorrection &rog,
+        const double anomalousPairOddsMin,
+        const double rog,
         const PairInfo &that) const
     {
-        return empty() || info_.isWorseThan(anomalousPairScoreMin, rog, that);
+        return empty() || info_.isWorseThan(anomalousPairOddsMin, rog, that);
     }
 
     inline bool isAsGood(const PairInfo &that) const
@@ -426,11 +395,11 @@ struct BestPairInfo
 private:
     // corresponding entries represent read pairs. All read pairs in repeatAlignments_ represent alignments of the same bestTemplateScore_ to the repeat
     static const unsigned READS_IN_A_PAIR = 2;
-    static const std::size_t MAX_PROBABILITIES_TO_KEEP = 3;
+    static const std::size_t MAX_PROBABILITIES_TO_KEEP = 2;
     PairInfo info_;
-    common::StaticVector<templateBuilder::ShadowProbability, MAX_PROBABILITIES_TO_KEEP + 1> readProbabilities_[READS_IN_A_PAIR];
-    common::StaticVector<templateBuilder::PairProbability, MAX_PROBABILITIES_TO_KEEP + 1> properPairProbabilities_;
-    common::StaticVector<templateBuilder::PairProbability, MAX_PROBABILITIES_TO_KEEP + 1> allPairProbabilities_;
+    common::StaticVector<templateBuilder::ShadowProbability, MAX_PROBABILITIES_TO_KEEP> readProbabilities_[READS_IN_A_PAIR];
+    common::StaticVector<templateBuilder::PairProbability, MAX_PROBABILITIES_TO_KEEP> properPairProbabilities_;
+    common::StaticVector<templateBuilder::PairProbability, MAX_PROBABILITIES_TO_KEEP> allPairProbabilities_;
 
     std::vector<BamTemplate> repeats_;
 

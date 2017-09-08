@@ -1,6 +1,6 @@
 /**
  ** Isaac Genome Alignment Software
- ** Copyright (c) 2010-2014 Illumina, Inc.
+ ** Copyright (c) 2010-2017 Illumina, Inc.
  ** All rights reserved.
  **
  ** This software is provided under the terms and conditions of the
@@ -50,6 +50,12 @@ public:
     template<typename Sink>
     bool flush(Sink& snk);
 
+    // unverified number of bytes the compressor would add to data with compression level 0
+    static const size_t gzip_junk = 41;
+    // bgzf cannot handle blocks over 0xFFFF bytes long. assume 1/1 compression ratio for input data
+    static const unsigned bgzf_buffer_size_ = 0xFFFF;
+    static const unsigned short max_uncompressed_per_block_ = bgzf_buffer_size_ - gzip_junk;
+
 private:
     void initBuffer();
     void rewriteHeader();
@@ -64,11 +70,6 @@ private:
         };
         return ret;
     }
-    // unverified number of bytes the compressor would add to data with compression level 0
-    static const size_t gzip_junk = 41;
-    // bgzf cannot handle blocks over 0xFFFF bytes long. assume 1/1 compression ratio for input data
-    static const unsigned bgzf_buffer_size_ = 0xFFFF;
-    static const unsigned short max_uncompressed_per_block_ = bgzf_buffer_size_ - gzip_junk;
     const bios::gzip_params gzip_params_;
 
     std::vector<char> bgzf_buffer;
@@ -100,7 +101,7 @@ void BgzfCompressor::initBuffer()
 
 BgzfCompressor::BgzfCompressor(const bios::gzip_params& gzip_params):
     gzip_params_(gzip_params),
-    compressor_(gzip_params_),
+    compressor_(gzip_params_,65535),
     uncompressed_in_(0)
 {
     bgzf_buffer.reserve(bgzf_buffer_size_); //single chunk cannot hold more than 65535 compressed bytes
@@ -109,7 +110,7 @@ BgzfCompressor::BgzfCompressor(const bios::gzip_params& gzip_params):
 
 BgzfCompressor::BgzfCompressor(const BgzfCompressor& that):
     gzip_params_(that.gzip_params_),
-    compressor_(gzip_params_),
+    compressor_(gzip_params_,65535),
     uncompressed_in_(0)
 {
     bgzf_buffer.reserve(bgzf_buffer_size_); //single chunk cannot hold more than 65535 compressed bytes
@@ -122,7 +123,7 @@ std::streamsize BgzfCompressor::write(Sink &snk, const char* s, std::streamsize 
     const size_t buffer_left(max_uncompressed_per_block_ - uncompressed_in_);
     const std::streamsize to_buffer(std::min<std::streamsize>(buffer_left, src_size));
 
-//    ISAAC_THREAD_CERR << "will buffer: " << to_buffer << " out of " << src_size << " bytes\n";
+//    ISAAC_THREAD_CERR << "BgzfCompressor will buffer: " << to_buffer << " out of " << src_size << " bytes\n";
 
     if (to_buffer)
     {

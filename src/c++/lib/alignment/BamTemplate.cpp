@@ -1,6 +1,6 @@
 /**
  ** Isaac Genome Alignment Software
- ** Copyright (c) 2010-2014 Illumina, Inc.
+ ** Copyright (c) 2010-2017 Illumina, Inc.
  ** All rights reserved.
  **
  ** This software is provided under the terms and conditions of the
@@ -28,28 +28,42 @@ namespace alignment
 
 BamTemplate::BamTemplate()
     : alignmentScore_(-1U)
-    , properPair_(false)
 //  , debugClass_ = 0;
 {
 }
 
 BamTemplate::BamTemplate(
-    const FragmentMetadata &read1,
-    const FragmentMetadata &read2,
-    const bool properPair/* = false*/)
-    : alignmentScore_(-1U)
-    , properPair_(properPair)
+    const FragmentMetadata &oneRead,
+    const FragmentMetadata &anotherRead,
+    const bool properPair/* = false*/,
+    const unsigned alignmentScore/* = -1U*/)
+    : alignmentScore_(alignmentScore)
+    , pairInfo_(oneRead, anotherRead, properPair)
 //  , debugClass_ = 0;
 {
-    ISAAC_ASSERT_MSG(!read1.getReadIndex(), "Incorrect index for read1:" << read1);
-    ISAAC_ASSERT_MSG(1 == read2.getReadIndex(), "Incorrect index for read2:" << read2);
-    fragmentMetadataList_.push_back(read1);
-    fragmentMetadataList_.push_back(read2);
+    if (!oneRead.getReadIndex())
+    {
+        fragmentMetadataList_.push_back(oneRead);
+        fragmentMetadataList_.push_back(anotherRead);
+    }
+    else
+    {
+        fragmentMetadataList_.push_back(anotherRead);
+        fragmentMetadataList_.push_back(oneRead);
+    }
+    ISAAC_ASSERT_MSG(oneRead.getReadIndex() != anotherRead.getReadIndex(), "Read index can't be same:" << oneRead << " " << anotherRead);
+}
+
+BamTemplate::BamTemplate(
+    const FragmentMetadata &oneRead)
+    : alignmentScore_(-1U)
+//  , debugClass_ = 0;
+{
+    fragmentMetadataList_.push_back(oneRead);
 }
 
 BamTemplate::BamTemplate(const flowcell::ReadMetadataList &tileReads, const Cluster &cluster)
     : alignmentScore_(-1U)
-    , properPair_(false)
 //  , debugClass_ = 0;
 {
     BOOST_FOREACH(const flowcell::ReadMetadata &read, tileReads)
@@ -72,7 +86,7 @@ bool BamTemplate::filterLowQualityFragments(const int mapqThreshold)
     unsigned goodFragments = 0;
     for (unsigned i = 0; getFragmentCount() > i; ++i)
     {
-        FragmentMetadata &fragment = getFragmentMetadata(i);
+        const FragmentMetadata &fragment = getFragmentMetadata(i);
         if (fragment.isAligned() && mapqThreshold <= fragment.mapQ)
         {
             ++goodFragments;

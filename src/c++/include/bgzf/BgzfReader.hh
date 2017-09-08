@@ -1,6 +1,6 @@
 /**
  ** Isaac Genome Alignment Software
- ** Copyright (c) 2010-2014 Illumina, Inc.
+ ** Copyright (c) 2010-2017 Illumina, Inc.
  ** All rights reserved.
  **
  ** This software is provided under the terms and conditions of the
@@ -57,7 +57,7 @@ class BgzfReader
     std::vector<char> compressedBlockBuffer_;
 
     z_stream strm_;
-    char zalbuffer[3][65535];
+    char zalbuffer[3][4*65535];
     unsigned zalbufferFree;
 
 public:

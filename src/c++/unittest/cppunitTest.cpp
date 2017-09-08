@@ -1,6 +1,6 @@
 /**
  ** Isaac Genome Alignment Software
- ** Copyright (c) 2010-2014 Illumina, Inc.
+ ** Copyright (c) 2010-2017 Illumina, Inc.
  ** All rights reserved.
  **
  ** This software is provided under the terms and conditions of the
@@ -18,6 +18,7 @@
  **/
 
 #include <sstream>
+#include <fstream>
 #include <cppunit/CompilerOutputter.h>
 #include <cppunit/XmlOutputter.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
@@ -49,8 +50,10 @@ int main()
   // Run the tests.
   bool wasSucessful = runner.run();
 
+  std::ofstream fout("./cppunitTest.xml");
+
   // Produce the XML output on stderr
-  CppUnit::XmlOutputter( &runner.result(), std::cerr ).write();
+  CppUnit::XmlOutputter( &runner.result(), fout ).write();
 
   // Return error code 1 if the one of test failed.
   return wasSucessful ? 0 : 1;

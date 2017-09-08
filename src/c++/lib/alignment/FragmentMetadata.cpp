@@ -1,6 +1,6 @@
 /**
  ** Isaac Genome Alignment Software
- ** Copyright (c) 2010-2014 Illumina, Inc.
+ ** Copyright (c) 2010-2017 Illumina, Inc.
  ** All rights reserved.
  **
  ** This software is provided under the terms and conditions of the
@@ -408,6 +408,7 @@ unsigned iSAAC_PROFILING_NOINLINE FragmentMetadata::updateAlignment(
     ISAAC_ASSERT_MSG(cigarBuffer.size() > this->cigarOffset, "Expecting the new cigar is not empty");
 
     int64_t currentPosition = strandPosition;
+    int64_t highestStrandPos = strandPosition;
     unsigned currentBase = 0;
     unsigned matchCount = 0;
     for (unsigned currentCigarOffset = this->cigarOffset; this->cigarOffset + this->cigarLength > currentCigarOffset; ++currentCigarOffset)
@@ -451,9 +452,13 @@ unsigned iSAAC_PROFILING_NOINLINE FragmentMetadata::updateAlignment(
         {
             ISAAC_ASSERT_MSG(false, "Unexpected Cigar OpCode:" << cigar.second);
         }
+        if (currentReverse == this->reverse && currentContigId == this->contigId)
+        {
+            highestStrandPos = currentPosition;
+        }
     }
 
-    this->rStrandPos = reference::ReferencePosition(currentContigId, currentPosition, currentReverse);
+    this->rStrandPos = reference::ReferencePosition(this->contigId, highestStrandPos, this->reverse);
     this->position = strandPosition;
 
     const unsigned endClipOffset = getReadLength() - getEndClippedLength();

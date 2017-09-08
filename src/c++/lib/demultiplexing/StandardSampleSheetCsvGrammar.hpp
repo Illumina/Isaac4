@@ -1,6 +1,6 @@
 /**
  ** Isaac Genome Alignment Software
- ** Copyright (c) 2010-2014 Illumina, Inc.
+ ** Copyright (c) 2010-2017 Illumina, Inc.
  ** All rights reserved.
  **
  ** This software is provided under the terms and conditions of the
@@ -139,7 +139,7 @@ struct StandardSampleSheetCsvGrammar :
             project_[bind(&flowcell::BarcodeMetadata::setProject, _val, _1)] ;
         barcode_metadata_.name("barcode_metadata_");
 
-        start_ = header_ >> *(+Csv::crlf_ >> *comment_line_ >> -barcode_metadata_) >> *Csv::crlf_;
+        start_ = *comment_line_ >> header_ >> *(+Csv::crlf_ >> *comment_line_ >> -barcode_metadata_) >> *Csv::crlf_;
 
     }
 

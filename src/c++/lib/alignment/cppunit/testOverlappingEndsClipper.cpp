@@ -1,6 +1,6 @@
 /**
  ** Isaac Genome Alignment Software
- ** Copyright (c) 2010-2014 Illumina, Inc.
+ ** Copyright (c) 2010-2017 Illumina, Inc.
  ** All rights reserved.
  **
  ** This software is provided under the terms and conditions of the
@@ -286,33 +286,37 @@ void TestOverlappingEndsClipper::init(
 
     cigarBuffer_.clear();
 
-    templ.getFragmentMetadata(0).reverse = read1Reverse;
-    templ.getFragmentMetadata(0).cigarBuffer = &cigarBuffer_;
-    templ.getFragmentMetadata(0).cigarOffset = cigarBuffer_.size();
-    templ.getFragmentMetadata(0).contigId = 0;
-    templ.getFragmentMetadata(0).position = read1.find_first_not_of(' ');
-    templ.getFragmentMetadata(0).rStrandPos =
-        isaac::reference::ReferencePosition(0 , templ.getFragmentMetadata(0).position + readMetadataList.at(0).getLength() - overhang);
+    isaac::alignment::FragmentMetadata r0 = templ.getFragmentMetadata(0);
+    r0.reverse = read1Reverse;
+    r0.cigarBuffer = &cigarBuffer_;
+    r0.cigarOffset = cigarBuffer_.size();
+    r0.contigId = 0;
+    r0.position = read1.find_first_not_of(' ');
+    r0.rStrandPos =
+        isaac::reference::ReferencePosition(0 , r0.position + readMetadataList.at(0).getLength() - overhang);
     cigarBuffer_.addOperation(readMetadataList.at(0).getLength() - overhang, isaac::alignment::Cigar::ALIGN);
     if (overhang)
     {
         cigarBuffer_.addOperation(overhang, isaac::alignment::Cigar::SOFT_CLIP);
     }
-    templ.getFragmentMetadata(0).cigarLength = cigarBuffer_.size() - templ.getFragmentMetadata(0).cigarOffset;
+    r0.cigarLength = cigarBuffer_.size() - r0.cigarOffset;
 
-    templ.getFragmentMetadata(1).reverse = read2Reverse;
-    templ.getFragmentMetadata(1).cigarBuffer = &cigarBuffer_;
-    templ.getFragmentMetadata(1).cigarOffset = cigarBuffer_.size();
-    templ.getFragmentMetadata(1).contigId = 0;
-    templ.getFragmentMetadata(1).position = read2.find_first_not_of(' ') + overhang;
-    templ.getFragmentMetadata(1).rStrandPos =
-        isaac::reference::ReferencePosition(0 , templ.getFragmentMetadata(1).position + readMetadataList.at(1).getLength() - overhang);
+    isaac::alignment::FragmentMetadata r1 = templ.getFragmentMetadata(1);
+    r1.reverse = read2Reverse;
+    r1.cigarBuffer = &cigarBuffer_;
+    r1.cigarOffset = cigarBuffer_.size();
+    r1.contigId = 0;
+    r1.position = read2.find_first_not_of(' ') + overhang;
+    r1.rStrandPos =
+        isaac::reference::ReferencePosition(0 , r1.position + readMetadataList.at(1).getLength() - overhang);
     if (overhang)
     {
         cigarBuffer_.addOperation(overhang, isaac::alignment::Cigar::SOFT_CLIP);
     }
     cigarBuffer_.addOperation(readMetadataList.at(1).getLength() - overhang, isaac::alignment::Cigar::ALIGN);
-    templ.getFragmentMetadata(1).cigarLength = cigarBuffer_.size() - templ.getFragmentMetadata(1).cigarOffset;
+    r1.cigarLength = cigarBuffer_.size() - r1.cigarOffset;
+
+    templ = isaac::alignment::BamTemplate(r0, r1, templ.isProperPair());
 }
 
 

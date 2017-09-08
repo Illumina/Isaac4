@@ -1,0 +1,8 @@
+# This sample sheet is being used by default when Isaac is compiled --with-dev-stats
+# --with-dev-stats is intended to be run from bam files and compares the alignment results with
+# placement of the reads in the input bam 
+FCID,Lane,SampleID,SampleRef,Index,Description,Control,Recipe,Operator,SampleProject
+ValidationFlowcell,1,"Aligned",Unknown,,'All data aligned',N,,,validation
+ValidationFlowcell,2,"Unchanged",Unknown,,'Reads that aligned similar as in the input',N,,,validation
+ValidationFlowcell,3,"Changed",Unknown,,'Reads aligned differently than in the input',N,,,validation
+ValidationFlowcell,4,"Original",Unknown,,'Original placement of the reads for those that aligned different from the input',N,,,validation

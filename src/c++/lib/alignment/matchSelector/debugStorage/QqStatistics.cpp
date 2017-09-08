@@ -1,6 +1,6 @@
 /**
  ** Isaac Genome Alignment Software
- ** Copyright (c) 2010-2014 Illumina, Inc.
+ ** Copyright (c) 2010-2017 Illumina, Inc.
  ** All rights reserved.
  **
  ** This software is provided under the terms and conditions of the
@@ -81,18 +81,24 @@ void QqStatistics::updateStat(
     const bool onlyGood)
 {
     const FragmentMetadata &fragment = bamTemplate.getFragmentMetadata(readIndex);
-    if (!onlyGood || (fragment.isUniquelyAligned() && /*!fragment.dodgy && */!fragment.gapCount && !fragment.getBeginClippedLength() && !fragment.getEndClippedLength()))
+    if (!fragment.gapCount )
     {
-        if (2 != bamTemplate.getFragmentCount())
+        if (!onlyGood || (fragment.isUniquelyAligned() && /*!fragment.dodgy && */!fragment.getBeginClippedLength() && !fragment.getEndClippedLength()))
         {
-            updateHistogram(fragment);
-        }
-        else if (bamTemplate.isProperPair())
-        {
-            const FragmentMetadata &mate = bamTemplate.getMateFragmentMetadata(fragment);
-            if (!onlyGood || (mate.isUniquelyAligned() && /*!mate.dodgy && */!mate.gapCount && !mate.getBeginClippedLength() && !mate.getEndClippedLength()))
+            if (2 != bamTemplate.getFragmentCount())
             {
                 updateHistogram(fragment);
+            }
+            else if (bamTemplate.isProperPair())
+            {
+                const FragmentMetadata &mate = bamTemplate.getMateFragmentMetadata(fragment);
+                if (!mate.gapCount)
+                {
+                    if (!onlyGood || (mate.isUniquelyAligned() && /*!mate.dodgy && */!mate.getBeginClippedLength() && !mate.getEndClippedLength()))
+                    {
+                        updateHistogram(fragment);
+                    }
+                }
             }
         }
     }

@@ -1,6 +1,6 @@
 /**
  ** Isaac Genome Alignment Software
- ** Copyright (c) 2010-2014 Illumina, Inc.
+ ** Copyright (c) 2010-2017 Illumina, Inc.
  ** All rights reserved.
  **
  ** This software is provided under the terms and conditions of the
@@ -28,6 +28,8 @@ void align(const isaac::options::AlignOptions &options);
 
 int main(int argc, char *argv[])
 {
+    isaac::package::initialize(isaac::common::getModuleFileName(), "@iSAAC_HOME@");
+
     iSAAC_SET_MAX_FILES;
 
     std::cerr << std::setprecision(std::numeric_limits<double>::digits10);
@@ -44,7 +46,6 @@ int main(int argc, char *argv[])
 
 void align(const isaac::options::AlignOptions &options)
 {
-    isaac::package::initialize(isaac::common::getModuleFileName(), "@iSAAC_HOME@");
     if (isaac::common::numaInitialize(options.enableNuma))
     {
         ISAAC_THREAD_CERR << "align: NUMA-aware memory management enabled." << std::endl;
@@ -123,7 +124,7 @@ void align(const isaac::options::AlignOptions &options)
         options.minGapExtendScore,
         options.splitGapLength,
         options.dodgyAlignmentScore,
-        options.anomalousPairScoreMin,
+        options.anomalousPairHandicap,
         options.inputLoadersMax,
         options.tempSaversMax,
         options.tempLoadersMax,

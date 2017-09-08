@@ -1,6 +1,6 @@
 /**
  ** Isaac Genome Alignment Software
- ** Copyright (c) 2010-2014 Illumina, Inc.
+ ** Copyright (c) 2010-2017 Illumina, Inc.
  ** All rights reserved.
  **
  ** This software is provided under the terms and conditions of the
@@ -153,7 +153,7 @@ public:
     unsigned splitGapLength;
     std::string dodgyAlignmentScoreString;
     alignment::TemplateBuilder::DodgyAlignmentScore dodgyAlignmentScore;
-    unsigned anomalousPairScoreMin;
+    unsigned anomalousPairHandicap;
     std::string memoryControlString;
     common::ScopedMallocBlock::Mode memoryControl;
     uint64_t memoryLimit;

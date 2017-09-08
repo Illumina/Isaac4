@@ -1,6 +1,6 @@
 /**
  ** Isaac Genome Alignment Software
- ** Copyright (c) 2010-2014 Illumina, Inc.
+ ** Copyright (c) 2010-2017 Illumina, Inc.
  ** All rights reserved.
  **
  ** This software is provided under the terms and conditions of the
@@ -135,7 +135,7 @@ ClusterHashMatchFinder<ReferenceHash, seedsPerMatchMax>::ClusterHashMatchFinder(
  *
  * \return true if match found, false otherwise.
  */
-bool iSAAC_PROFILING_NOINLINE mergeSeedHit(
+inline bool iSAAC_PROFILING_NOINLINE mergeSeedHit(
     ReferenceOffsetList::iterator &begin,
     const ReferenceOffsetList::iterator end,
     const reference::ContigList::Offset hit,
@@ -230,7 +230,7 @@ unsigned iSAAC_PROFILING_NOINLINE mergeSeedHits(ReferenceOffsetLists& mergeBuffe
         return 0;
     }
 
-    Unmerged unmerged[] =
+    Unmerged unmerged[maxSupportingSeeds + 1] =
     {
         {mergeBuffers[1].begin(), mergeBuffers[1].end(), mergeBuffers[1].begin()}, //[0] is unused. Just a filler to avoid warnings on gcc 4.7
         {mergeBuffers[1].begin(), mergeBuffers[1].end(), mergeBuffers[1].begin()},

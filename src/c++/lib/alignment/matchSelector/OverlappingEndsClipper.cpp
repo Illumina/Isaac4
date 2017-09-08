@@ -1,6 +1,6 @@
 /**
  ** Isaac Genome Alignment Software
- ** Copyright (c) 2010-2014 Illumina, Inc.
+ ** Copyright (c) 2010-2017 Illumina, Inc.
  ** All rights reserved.
  **
  ** This software is provided under the terms and conditions of the
@@ -51,8 +51,8 @@ void OverlappingEndsClipper::clip(
         return;
     }
 
-    FragmentMetadata &r1 = bamTemplate.getFragmentMetadata(0);
-    FragmentMetadata &r2 = bamTemplate.getFragmentMetadata(1);
+    FragmentMetadata r1 = bamTemplate.getFragmentMetadata(0);
+    FragmentMetadata r2 = bamTemplate.getFragmentMetadata(1);
 
     if (!r1.isAligned() || !r2.isAligned() || r1.gapCount || r2.gapCount)
     {
@@ -190,6 +190,8 @@ void OverlappingEndsClipper::clip(
         left.cigarLength = cigarBuffer_.size() - left.cigarOffset;
 
     }
+
+    bamTemplate = BamTemplate(left, right, bamTemplate.isProperPair(), bamTemplate.getAlignmentScore());
 }
 
 } // namespace matchSelector

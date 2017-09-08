@@ -1,6 +1,6 @@
 /**
  ** Isaac Genome Alignment Software
- ** Copyright (c) 2010-2014 Illumina, Inc.
+ ** Copyright (c) 2010-2017 Illumina, Inc.
  ** All rights reserved.
  **
  ** This software is provided under the terms and conditions of the
@@ -36,6 +36,7 @@
 #include "demultiplexing/SampleSheetCsv.hh"
 #include "oligo/Mask.hh"
 #include "options/AlignOptions.hh"
+#include "package/InstallationPaths.hh"
 
 #include "alignOptions/BamFlowcell.hh"
 #include "alignOptions/BclFlowcell.hh"
@@ -82,6 +83,9 @@ uint64_t getUlimitV()
 AlignOptions::AlignOptions()
     : baseCallsDirectoryList()
     , baseCallsFormatStringList(1, "bcl")
+#ifdef ISAAC_DEV_STATS_ENABLED
+    , sampleSheetStringList(1, (package::expandPath(iSAAC_FULL_DATADIR) / "validation" / "validation.csv").string())
+#endif //ISAAC_DEV_STATS_ENABLED
     , barcodeMismatchesStringList(1, "1")
     , hashTableBucketCount(0x100000000)
     , referenceName("default")
@@ -106,7 +110,7 @@ AlignOptions::AlignOptions()
     , matchFinderWayTooManyRepeats(100000)
     , matchFinderShadowSplitRepeats(100000)
     , seedBaseQualityMin(3)
-    , repeatThreshold(1000)
+    , repeatThreshold(100)
     , mateDriftRange(-1)
     , neighborhoodSizeThreshold(0) //(10000) - disabled by default as so far the neighbor matcher only increased the probability of misplaced reads
     , startFromString("Start")
@@ -153,7 +157,7 @@ AlignOptions::AlignOptions()
                     //##### ERROR MESSAGE: Somehow the requested coordinate is not covered by the read. Too many deletions?
     , dodgyAlignmentScoreString("0")
     , dodgyAlignmentScore(0)
-    , anomalousPairScoreMin(240) //about 5 mismatches difference for anomalous pair to be considered instead one without breakpoint
+    , anomalousPairHandicap(240) //about 5 mismatches difference for anomalous pair to be considered instead one without breakpoint
 #ifdef ISAAC_THREAD_CERR_DEV_TRACE_ENABLED
     , memoryControlString("off")
 #else //ISAAC_THREAD_CERR_DEV_TRACE_ENABLED
@@ -199,6 +203,8 @@ AlignOptions::AlignOptions()
             "Unless set, Isaac will fail if the length of the sequence changes between the records of the fastq file.")
         ("buffer-bins"  , bpo::value<bool>(&bufferBins),
             "Deprecated. Bin buffering is not supported.")
+        ("anomalous-pair-score-min"  , bpo::value<unsigned>(&anomalousPairHandicap),
+            "Backward compatibility. Old name for anomalous-pair-handicap.")
             ;
 
     namedOptions_.add_options()
@@ -239,7 +245,7 @@ AlignOptions::AlignOptions()
                 "\n  Standard          : Standard protocol adapters. Same as AGATCGGAAGAGC*,*GCTCTTCCGATCT"
                 "\n  Nextera           : Nextera standard. Same as CTGTCTCTTATACACATCT*,*AGATGTGTATAAGAGACAG"
                 "\n  NexteraMp         : Nextera mate-pair. Same as CTGTCTCTTATACACATCT,AGATGTGTATAAGAGACAG")
-        ("sample-sheet,s"   , bpo::value<std::vector<std::string> >(&sampleSheetStringList)->multitoken(),
+        ("sample-sheet,s"   , bpo::value<std::vector<std::string> >(&sampleSheetStringList)->multitoken()->default_value(sampleSheetStringList, sampleSheetStringList.empty() ? "" : sampleSheetStringList.at(0)),
                 "Multiple entries allowed. Each entry is applied to the corresponding base-calls."
                 "\n  - none            : process flowcell as if there is no sample sheet"
                 "\n  - default         : use <base-calls>/SampleSheet.csv if it exists. This is the default behavior."
@@ -491,9 +497,9 @@ AlignOptions::AlignOptions()
                 "\n - 0-254            : exact MAPQ value to be set in bam"
                 "\n - Unknown          : assigns value 255 for bam MAPQ. Ensures SM and AS are not specified in the bam"
         )
-        ("anomalous-pair-score-min"  , bpo::value<unsigned>(&anomalousPairScoreMin)->default_value(anomalousPairScoreMin),
-                "When deciding between an anomalous pair and a rescued pair, this is the minimum alignment score the "
-                "anomalous pair needs to have in order to be accepted instead of a rescued pair.")
+        ("anomalous-pair-handicap"  , bpo::value<unsigned>(&anomalousPairHandicap)->default_value(anomalousPairHandicap),
+                "When deciding between an anomalous pair and a rescued pair, this is proportional to the number of mismatches "
+                "anomalous pair needs to have less in order to be accepted instead of a rescued pair.")
         ("realign-vigorously"         , bpo::value<bool>(&realignGapsVigorously)->default_value(realignGapsVigorously),
                 "If set, the realignment result will be used to search for more gaps and attempt another realignment, "
                 "effectively extending the realignment over multiple deletions not covered by the original alignment.")

@@ -1,6 +1,6 @@
 /**
  ** Isaac Genome Alignment Software
- ** Copyright (c) 2010-2014 Illumina, Inc.
+ ** Copyright (c) 2010-2017 Illumina, Inc.
  ** All rights reserved.
  **
  ** This software is provided under the terms and conditions of the
@@ -90,7 +90,7 @@ class InflateGzipDecompressor
     z_stream strm_;
     static const std::size_t ALLOCATIONS_MAX = 3;
     static const std::size_t DEFAULT_BUFFER_SIZE = 4096 * 8;
-    char zalbuffer[ALLOCATIONS_MAX][65535];
+    char zalbuffer[ALLOCATIONS_MAX][4*65535];
     unsigned zalbufferFree;
     bool allocationsBlocked_;
 public:

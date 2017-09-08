@@ -1,7 +1,7 @@
 ################################################################################
 ##
 ## Isaac Genome Alignment Software
-## Copyright (c) 2010-2014 Illumina, Inc.
+## Copyright (c) 2010-2017 Illumina, Inc.
 ## All rights reserved.
 ##
 ## This software is provided under the terms and conditions of the
@@ -91,7 +91,7 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/RegistryNames.txt
 ## create the targets to run the tests
 ##
 add_custom_command(OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/${iSAAC_CPPUNIT_TEST_NAME}.passed 
-		   COMMAND export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:${CPPUNIT_LOCATION} && ./${iSAAC_CPPUNIT_TEST_NAME} 2> ./${iSAAC_CPPUNIT_TEST_NAME}.xml
+		   COMMAND export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:${CPPUNIT_LOCATION} && ./${iSAAC_CPPUNIT_TEST_NAME}
 	           COMMAND touch ${iSAAC_CPPUNIT_TEST_NAME}.passed  
 		   DEPENDS ${iSAAC_UNIQUE_PREFIX}${iSAAC_CPPUNIT_TEST_NAME} ${CMAKE_CURRENT_BINARY_DIR}/RegistryNames.txt
 		   COMMENT "Running unit tests ${iSAAC_UNIQUE_PREFIX}${iSAAC_CPPUNIT_TEST_NAME}")

@@ -1,6 +1,6 @@
 /**
  ** Isaac Genome Alignment Software
- ** Copyright (c) 2010-2014 Illumina, Inc.
+ ** Copyright (c) 2010-2017 Illumina, Inc.
  ** All rights reserved.
  **
  ** This software is provided under the terms and conditions of the
@@ -41,14 +41,18 @@ class MapqStatistics
     const boost::filesystem::path outputAsFilePath_;
 
     std::atomic<std::size_t> unalignedFragments_;
-    std::atomic<std::size_t> downgradedAlignments_;
-    std::atomic<std::size_t> badDowngradedAlignments_;
+    std::atomic<std::size_t> downgradedMapq_;
+    std::atomic<std::size_t> badDowngradedMapq_;
+    std::atomic<std::size_t> downgradedSm_;
+    std::atomic<std::size_t> badDowngradedSm_;
+    std::atomic<std::size_t> downgradedAs_;
+    std::atomic<std::size_t> badDowngradedAs_;
     std::array<std::atomic<std::size_t>, 2000> alignmentsBySm_;
     std::array<std::atomic<std::size_t>, 2000> badAlignmentsBySm_;
     std::array<std::atomic<std::size_t>, 2000> alignmentsByAs_;
     std::array<std::atomic<std::size_t>, 2000> badAlignmentsByAs_;
-    std::array<std::atomic<std::size_t>, 61> alignmentsByMapq_;
-    std::array<std::atomic<std::size_t>, 61> badAlignmentsByMapq_;
+    std::array<std::atomic<std::size_t>, 256> alignmentsByMapq_;
+    std::array<std::atomic<std::size_t>, 256> badAlignmentsByMapq_;
 public:
     MapqStatistics(
         const unsigned debugClassFilter,
@@ -65,7 +69,7 @@ public:
         const FragmentMetadata *mate);
 
 private:
-    void updateMapqHistograms(
+    bool updateMapqHistograms(
         const BamTemplate& bamTemplate,
         const std::size_t readIndex,
         const FragmentMetadata& fragment,

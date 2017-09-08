@@ -1,7 +1,7 @@
 ################################################################################
 ##
 ## Isaac Genome Alignment Software
-## Copyright (c) 2010-2014 Illumina, Inc.
+## Copyright (c) 2010-2017 Illumina, Inc.
 ## All rights reserved.
 ##
 ## This software is provided under the terms and conditions of the
@@ -38,8 +38,8 @@ set(iSAAC_STRING "Isaac")
 # the branch builds will never upgrade the properly released version 
 set(iSAAC_VERSION_MAJOR 04)
 set(iSAAC_VERSION_MINOR 17)
-set(iSAAC_VERSION_PATCH 06)
-set(iSAAC_VERSION_DEVEL 15)
+set(iSAAC_VERSION_PATCH 09)
+set(iSAAC_VERSION_DEVEL 06)
 set(iSAAC_VERSION_FULL "${iSAAC_STRING}-${iSAAC_VERSION_MAJOR}.${iSAAC_VERSION_MINOR}.${iSAAC_VERSION_PATCH}.${iSAAC_VERSION_DEVEL}")
 
 if (CPACK_GENERATOR)
@@ -165,6 +165,7 @@ add_subdirectory (bash)
 add_subdirectory (c++)
 add_subdirectory (css)
 add_subdirectory (data)
+add_subdirectory (validation)
 add_subdirectory (make)
 add_subdirectory (xsl)
 add_subdirectory (cmake/postInstall)

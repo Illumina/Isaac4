@@ -1,6 +1,6 @@
 /**
  ** Isaac Genome Alignment Software
- ** Copyright (c) 2010-2014 Illumina, Inc.
+ ** Copyright (c) 2010-2017 Illumina, Inc.
  ** All rights reserved.
  **
  ** This software is provided under the terms and conditions of the
@@ -131,7 +131,7 @@ std::vector<boost::shared_ptr<boost::iostreams::filtering_ostream> > Build::crea
                 {
                     std::ostringstream oss(compressedHeader);
                     boost::iostreams::filtering_ostream bgzfStream;
-                    bgzfStream.push(bgzf::BgzfCompressor(bamGzipLevel_));
+                    bgzfStream.push(bgzf::BgzfCompressor(bamGzipLevel_),65535,0);
                     bgzfStream.push(oss);
                     bam::serializeHeader(bgzfStream,
                                          argv_,
@@ -570,7 +570,7 @@ void Build::reserveBuffers(
         while(bgzfStreams.size() < bamFileStreams_.size())
         {
             bgzfStreams.push_back(new boost::iostreams::filtering_ostream);
-            bgzfStreams.back().push(bgzf::BgzfCompressor(bamGzipLevel_));
+            bgzfStreams.back().push(bgzf::BgzfCompressor(bamGzipLevel_), 65535, 0);
             bgzfStreams.back().push(
                 boost::iostreams::back_insert_device<bam::BgzfBuffer >(
                     bgzfBuffers.at(bgzfStreams.size()-1)));

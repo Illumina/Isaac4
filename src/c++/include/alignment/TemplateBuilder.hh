@@ -1,6 +1,6 @@
 /**
  ** Isaac Genome Alignment Software
- ** Copyright (c) 2010-2014 Illumina, Inc.
+ ** Copyright (c) 2010-2017 Illumina, Inc.
  ** All rights reserved.
  **
  ** This software is provided under the terms and conditions of the
@@ -81,7 +81,7 @@ public:
         const bool splitAlignments,
         const AlignmentCfg &alignmentCfg,
         const DodgyAlignmentScore dodgyAlignmentScore,
-        const unsigned anomalousPairScoreMin,
+        const unsigned anomalousPairHandicap,
         const bool reserveBuffers);
 
     const FragmentMetadataLists &getFragments() const {return candidates_;}
@@ -140,7 +140,7 @@ private:
     const bool rescueShadows_;
     const bool anchorMate_;
     const DodgyAlignmentScore dodgyAlignmentScore_;
-    const unsigned anomalousPairScoreMin_;
+    const double anomalousPairHandicap_;
 
     const flowcell::FlowcellLayoutList &flowcellLayoutList_;
     const unsigned smitWatermanGapsMax_;
@@ -207,7 +207,7 @@ private:
         FragmentMetadataList& shadowList,
         templateBuilder::BestPairInfo &bestRescuedPair) const;
 
-            template <typename MatchFinderT>
+    template <typename MatchFinderT>
     templateBuilder::AlignmentType rescueAnomalousRepeatMate(
         const reference::ContigList &contigList,
         const RestOfGenomeCorrection &rog,
@@ -523,7 +523,7 @@ bool TemplateBuilder::searchForStructuralVariant(
 }
 
 inline void upateBestRescuedPair(
-    const unsigned anomalousPairScoreMin,
+    const double anomalousPairHandicap,
     const RestOfGenomeCorrection &rog,
     const TemplateLengthStatistics& tls,
     const FragmentMetadata& orphan,
@@ -532,7 +532,7 @@ inline void upateBestRescuedPair(
 {
     const isaac::alignment::TemplateLengthStatistics::CheckModelResult model = tls.checkModel(orphan, rescuedShadow);
     const bool properPair = TemplateLengthStatistics::Nominal == model || TemplateLengthStatistics::Undersized == model;
-    const templateBuilder::PairInfo pairInfo(orphan, rescuedShadow, properPair);
+    const PairInfo pairInfo(orphan, rescuedShadow, properPair);
 
     // Notice that all pairs we deal with here are properly oriented as this is how the rescue works. Some of them are
     // oversized, but we allow oversized pairs to be added to the proper pair probabilities list since this is the
@@ -540,13 +540,12 @@ inline void upateBestRescuedPair(
     // proper pair alignment score, but get scored with the chimera and splits if they happen to be the best choice.
     const bool hasSplits = orphan.isSplit() || rescuedShadow.isSplit();
 
-    ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(orphan.getCluster().getId(), "upateBestRescuedPair:\n" <<
-        "orphan:" << orphan << "\n" <<
-        "shadow:" << rescuedShadow << "\n" <<
-        "ret:" << ret);
+//    ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(orphan.getCluster().getId(), "upateBestRescuedPair:\n" <<
+//        "orphan:" << orphan << "\n" <<
+//        "shadow:" << rescuedShadow << "\n" <<
+//        "ret:" << ret);
 
-//    if (!ret..isBetterThan(anomalousPairScoreMin_, rog.getRogCorrection(), rescuedTemplate))
-    if (ret.isWorseThan(anomalousPairScoreMin, rog, pairInfo))
+    if (ret.isWorseThan(anomalousPairHandicap, rog.getRogCorrection(), pairInfo))
     {
         ret.resetBest(pairInfo, orphan, rescuedShadow, !hasSplits, properPair);
     }
@@ -561,7 +560,7 @@ inline void upateBestRescuedPair(
 }
 
 inline int updateBestAnchoredPair(
-    const unsigned anomalousPairScoreMin,
+    const double anomalousPairHandicap,
     const RestOfGenomeCorrection &rog,
     const TemplateLengthStatistics &tls,
     const FragmentMetadata &fragmentA,
@@ -570,12 +569,12 @@ inline int updateBestAnchoredPair(
 {
     const isaac::alignment::TemplateLengthStatistics::CheckModelResult model = tls.checkModel(fragmentA, fragmentB);
     const bool properPair = TemplateLengthStatistics::Nominal == model || TemplateLengthStatistics::Undersized == model;
-    const templateBuilder::PairInfo pairInfo(fragmentA, fragmentB, properPair);
+    const PairInfo pairInfo(fragmentA, fragmentB, properPair);
 
     // unlike rescued pairs, there is no extra allowance for oversized pairs when global alignment is performed.
     // The logic is that cases resolved by seeds are fairly trivial, so it is unlikely that multiple alignments
     // within same location are similar enough for insert size to be a criterion worth coding for.
-    if (ret.isWorseThan(anomalousPairScoreMin, rog, pairInfo))
+    if (ret.isWorseThan(anomalousPairHandicap, rog.getRogCorrection(), pairInfo))
     {
         ret.resetBest(pairInfo, fragmentA, fragmentB, properPair, properPair);
         return -1;
@@ -593,7 +592,7 @@ inline int updateBestAnchoredPair(
 }
 
 inline void buildRescuedPairs(
-    const unsigned anomalousPairScoreMin,
+    const double anomalousPairHandicap,
     const reference::ContigList& contigList,
     const RestOfGenomeCorrection &rog,
     const FragmentMetadata& orphan,
@@ -604,7 +603,7 @@ inline void buildRescuedPairs(
     for(const FragmentMetadata &rescuedShadow : shadowList)
     {
         //all rescued pairs match model and are proper pairs even if they have splits because that's how we found them
-        upateBestRescuedPair(anomalousPairScoreMin, rog, tls, orphan, rescuedShadow, bestRescuedPair);
+        upateBestRescuedPair(anomalousPairHandicap, rog, tls, orphan, rescuedShadow, bestRescuedPair);
         bestRescuedPair.appendSingleProbability(rescuedShadow);
     }
 }
@@ -654,17 +653,20 @@ inline void scoreRescuedShadowTemplate(
     BamTemplate &bamTemplate,
     templateBuilder::BestPairInfo &bestRescuedPair)
 {
-    FragmentMetadata &orphan = bamTemplate.getFragmentMetadata(orphanIndex);
-    FragmentMetadata &shadow = bamTemplate.getFragmentMetadata(!orphanIndex);
+    const FragmentMetadata &orphan = bamTemplate.getFragmentMetadata(orphanIndex);
+    const FragmentMetadata &shadow = bamTemplate.getFragmentMetadata(!orphanIndex);
 
     const double otherTemplateProbability =
         bestRescuedPair.sumUniquePairProbabilities(
             orphan.logProbability + shadow.logProbability,
             bestRescuedPair.repeatsCount(),
             bamTemplate.isProperPair());
-    bamTemplate.setAlignmentScore(computeAlignmentScore(rog.getRogCorrection(), bestRescuedPair.probability(), otherTemplateProbability));
-    ISAAC_ASSERT_MSG(UNKNOWN_MAPQ != orphan.mapQ, "Invalid orphan.alignmentScore: " << orphan);
-    shadow.mapQ = pickMapQFromMate(orphan.mapQ, bamTemplate.getAlignmentScore());
+    //    bamTemplate.setAlignmentScore(computeAlignmentScore(rog.getRogCorrection(), bestRescuedPair.probability(), otherTemplateProbability));
+        ISAAC_ASSERT_MSG(UNKNOWN_MAPQ != orphan.mapQ, "Invalid orphan.alignmentScore: " << orphan);
+    //    bamTemplate.setFragmentMapq(shadow.getReadIndex(),
+    //        pickMapQFromMate(orphan.mapQ, bamTemplate.getAlignmentScore()));
+        bamTemplate.setFragmentMapq(shadow.getReadIndex(),
+            pickMapQFromMate(orphan.mapQ, computeAlignmentScore(rog.getRogCorrection(), bestRescuedPair.probability(), otherTemplateProbability)));
 }
 
 
@@ -742,7 +744,7 @@ void TemplateBuilder::rescueBestOrphansShadowTemplates(
             ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(repeatMate.getCluster().getId(), "rescueBestOrphansShadowTemplates for repeatMate: " << repeatMate);
             // we're not interested in shadows, only in updating pair probability
             rescueShadows(contigList, true, rog, readMetadataList, adapterClipper,
-                matchFinder, repeatMate, tls, shadowList, bestRescuedPair);
+                          matchFinder, repeatMate, tls, shadowList, bestRescuedPair);
             // cigar buffer is not meant to hold all those shadow cigars. And we don't need them.
             cigarBuffer_.resize(before);
         }
@@ -770,7 +772,7 @@ templateBuilder::AlignmentType TemplateBuilder::rescueAnomalousRepeatMate(
     const unsigned uniqueMateIndex = !bamTemplate.getFragmentMetadata(0).isUniquelyAligned();
     ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(cluster.getId(), "One end is not unique. Rescuing: " << bamTemplate);
     BamTemplate uniqueOrphanRescued(bamTemplate);
-    FragmentMetadata &orphan = bamTemplate.getFragmentMetadata(uniqueMateIndex);
+    FragmentMetadata orphan = bamTemplate.getFragmentMetadata(uniqueMateIndex);
     bestRescuedPair_.clear();
     if (rescueShadows(
         contigList,
@@ -786,12 +788,12 @@ templateBuilder::AlignmentType TemplateBuilder::rescueAnomalousRepeatMate(
     {
         bestRescuedPair_.removeRepeatDuplicates();
         pickRandomRepeatAlignment(orphan.getCluster().getId(), bestRescuedPair_, uniqueOrphanRescued);
-        if (!bamTemplate.isBetterThan(anomalousPairScoreMin_, rog.getRogCorrection(), uniqueOrphanRescued))
+        if (!bamTemplate.isBetterThan(anomalousPairHandicap_, rog.getRogCorrection(), uniqueOrphanRescued))
         {
             ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(bamTemplate.getCluster().getId(), "Rescued template:\n" << uniqueOrphanRescued <<
                 "is same or better:\n" << bamTemplate <<
                 " : " << computeAlignmentScore(rog.getRogCorrection(), exp(bamTemplate.getLogProbability()), exp(uniqueOrphanRescued.getLogProbability())) <<
-                " >= " << anomalousPairScoreMin_);
+                " : " << anomalousPairHandicap_);
 
             // check if rescuing from the other end ruins our bubble
             rescueBestOrphansShadowTemplates(
@@ -800,18 +802,13 @@ templateBuilder::AlignmentType TemplateBuilder::rescueAnomalousRepeatMate(
                 tls, fragments[!uniqueMateIndex], shadowList_[uniqueMateIndex], bestRescuedPair_);
 
             // trim, score and stay positive
-            FragmentMetadata &shadow = uniqueOrphanRescued.getFragmentMetadata(!uniqueMateIndex);
+            FragmentMetadata shadow = uniqueOrphanRescued.getFragmentMetadata(!uniqueMateIndex);
             trimShadowPairPEAdapaters(
                 contigList, rog, readMetadataList, tls, orphan, shadow, fragments[uniqueMateIndex], shadowList_[!uniqueMateIndex], bestRescuedPair_);
 
-            scoreRescuedShadowTemplate(rog, uniqueMateIndex, uniqueOrphanRescued, bestRescuedPair_);
+            bamTemplate = BamTemplate(orphan, shadow, uniqueOrphanRescued.isProperPair());
 
-            ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(bamTemplate.getCluster().getId(), "Rescued template:\n" << uniqueOrphanRescued <<
-                "after repeat mate rescue:\n" << bamTemplate <<
-                " : " << computeAlignmentScore(rog.getRogCorrection(), exp(bamTemplate.getLogProbability()), exp(uniqueOrphanRescued.getLogProbability())) <<
-                " >= " << anomalousPairScoreMin_);
-
-            bamTemplate = uniqueOrphanRescued;
+            scoreRescuedShadowTemplate(rog, uniqueMateIndex, bamTemplate, bestRescuedPair_);
         }
         else if (dodgySingleton(bamTemplate.getFragmentMetadata(uniqueMateIndex)))
         {
@@ -855,7 +852,7 @@ void TemplateBuilder::fixSemialignedMates(
         if (rescueMate(
                 contigList, !splitAlignments_, rog, readMetadataList, adapterClipper, matchFinder,
                 zero, templateLengthStatistics, fragments[zero], shadowList_[one], rescuedTemplate) &&
-                !bamTemplate.isBetterThan(anomalousPairScoreMin_, rog.getRogCorrection(), rescuedTemplate))
+                !bamTemplate.isBetterThan(anomalousPairHandicap_, rog.getRogCorrection(), rescuedTemplate))
         {
             // add the original pair in so that rescued mate scoring accounts for the original
             bestRescuedPair_.appendPairProbability(bamTemplate.getFragmentMetadata(zero), bamTemplate.getFragmentMetadata(one), true);
@@ -871,12 +868,14 @@ void TemplateBuilder::fixSemialignedMates(
                 if (rescueMate(
                         contigList, !splitAlignments_, rog, readMetadataList, adapterClipper, matchFinder,
                         one, templateLengthStatistics, fragments[one], shadowList_[zero], rescuedTemplate) &&
-                        !bamTemplate.isBetterThan(anomalousPairScoreMin_, rog.getRogCorrection(), rescuedTemplate))
+                        !bamTemplate.isBetterThan(anomalousPairHandicap_, rog.getRogCorrection(), rescuedTemplate))
                 {
-                    bamTemplate = rescuedTemplate;
-                    // both ends had to be rescued. Just score them independently usign seed and shadow rescue candidates
-                    scoreAnomalousEnd(rog, fragments[zero], shadowList_[zero], bamTemplate.getFragmentMetadata(zero));
-                    scoreAnomalousEnd(rog, fragments[one], shadowList_[one], bamTemplate.getFragmentMetadata(one));
+                    FragmentMetadata oneRead = rescuedTemplate.getFragmentMetadata(zero);
+                    FragmentMetadata anotherRead = rescuedTemplate.getFragmentMetadata(one);
+                    // both ends had to be rescued. Just score them independently using seed and shadow rescue candidates
+                    scoreAnomalousEnd(rog, fragments[zero], shadowList_[zero], oneRead);
+                    scoreAnomalousEnd(rog, fragments[one], shadowList_[one], anotherRead);
+                    bamTemplate = BamTemplate(oneRead, anotherRead, rescuedTemplate.isProperPair());
                     ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(bamTemplate.getCluster().getId(), "Rescued template is better: " << bamTemplate);
                 }
             }
@@ -898,7 +897,7 @@ bool TemplateBuilder::rescueMate(
     FragmentMetadataList& shadowList,
     BamTemplate &bamTemplate) const
 {
-    FragmentMetadata &orphan = bamTemplate.getFragmentMetadata(orphanIndex);
+    FragmentMetadata orphan = bamTemplate.getFragmentMetadata(orphanIndex);
     bestRescuedPair_.clear();
     if (rescueShadows(
         contigList,
@@ -915,12 +914,13 @@ bool TemplateBuilder::rescueMate(
         bestRescuedPair_.removeRepeatDuplicates();
         pickRandomRepeatAlignment(orphan.getCluster().getId(), bestRescuedPair_, bamTemplate);
 
-        FragmentMetadata &shadow = bamTemplate.getFragmentMetadata(!orphan.getReadIndex());
+        FragmentMetadata shadow = bamTemplate.getFragmentMetadata(!orphan.getReadIndex());
         trimShadowPairPEAdapaters(
             contigList, rog, readMetadataList, tls, orphan, shadow, orphanCandidates, shadowList, bestRescuedPair_);
 
         ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(orphan.getCluster().getId(),"rescueMate: rescued: " << bamTemplate);
 
+        bamTemplate = BamTemplate(orphan, shadow, bamTemplate.isProperPair());
         return true;
     }
     return false;
@@ -999,7 +999,7 @@ bool TemplateBuilder::rescueShadows(
             ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(orphan.getCluster().getId(), "    splitAlignments_: " << splitAlignments_);
             ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(orphan.getCluster().getId(), "    sameContigOnly: " << sameContigOnly);
             ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(orphan.getCluster().getId(), "    orphan.getContigId(): " << orphan.getContigId());
-            // search for reasonable indels first. Accept them even if SVs with less mismatches are possbile
+            // search for reasonable indels first. Accept them even if SVs with less mismatches are possible
             if (!searchForStructuralVariant(
                 contigList, readMetadataList[!orphanIndex], true, orphan.getContigId(),
                 adapterClipper, matchFinder, orphan.getCluster(), shadowList, cigarBuffer_) &&
@@ -1022,7 +1022,7 @@ bool TemplateBuilder::rescueShadows(
 
         ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(orphan.getCluster().getId(), "    Best shadow: " << topShadow);
 
-        buildRescuedPairs(anomalousPairScoreMin_, contigList, rog, orphan, shadowList, tls, bestRescuedPair);
+        buildRescuedPairs(anomalousPairHandicap_, contigList, rog, orphan, shadowList, tls, bestRescuedPair);
         return true;
     }
     else if (!shadowList.empty())

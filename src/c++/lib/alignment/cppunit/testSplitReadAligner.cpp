@@ -1,6 +1,6 @@
 /**
  ** Isaac Genome Alignment Software
- ** Copyright (c) 2010-2014 Illumina, Inc.
+ ** Copyright (c) 2010-2017 Illumina, Inc.
  ** All rights reserved.
  **
  ** This software is provided under the terms and conditions of the
@@ -735,7 +735,7 @@ void TestSplitReadAligner::testEverything4()
 
         CPPUNIT_ASSERT_EQUAL(std::size_t(3), fragmentMetadataList.size());
         CPPUNIT_ASSERT_EQUAL(std::string("34S24M41F1C24B41M58H"), fragmentMetadataList[2].getCigarString());
-        CPPUNIT_ASSERT_EQUAL(11U, fragmentMetadataList[2].smithWatermanScore);
+        CPPUNIT_ASSERT_EQUAL(11, fragmentMetadataList[2].smithWatermanScore);
         CPPUNIT_ASSERT_EQUAL(0L, fragmentMetadataList[2].getPosition());
         CPPUNIT_ASSERT_EQUAL(0U, fragmentMetadataList[2].getMismatchCount());
         // Gap is not included in edit distance when contig changes

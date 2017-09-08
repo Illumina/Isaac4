@@ -1,6 +1,6 @@
 /**
  ** Isaac Genome Alignment Software
- ** Copyright (c) 2010-2014 Illumina, Inc.
+ ** Copyright (c) 2010-2017 Illumina, Inc.
  ** All rights reserved.
  **
  ** This software is provided under the terms and conditions of the
@@ -124,7 +124,7 @@ AlignWorkflow::AlignWorkflow(
     const int minGapExtendScore,
     const unsigned splitGapLength,
     const alignment::TemplateBuilder::DodgyAlignmentScore dodgyAlignmentScore,
-    const unsigned anomalousPairScoreMin,
+    const unsigned anomalousPairHandicap,
     const unsigned inputLoadersMax,
     const unsigned tempSaversMax,
     const unsigned tempLoadersMax,
@@ -214,7 +214,7 @@ AlignWorkflow::AlignWorkflow(
     , splitAlignments_(splitAlignments)
     , alignmentCfg_(gapMatchScore, gapMismatchScore, gapOpenScore, gapExtendScore, minGapExtendScore, splitGapLength)
     , dodgyAlignmentScore_(dodgyAlignmentScore)
-    , anomalousPairScoreMin_(anomalousPairScoreMin)
+    , anomalousPairHandicap_(anomalousPairHandicap)
     , inputLoadersMax_(inputLoadersMax)
     , tempSaversMax_(tempSaversMax)
     , tempLoadersMax_(tempLoadersMax)
@@ -329,7 +329,7 @@ void AlignWorkflow::findMatches(
         keepUnaligned_, clipSemialigned_, clipOverlapping_,
         scatterRepeats_, rescueShadows_, trimPEAdapters_, anchorMate_, gappedMismatchesMax_, smitWatermanGapsMax_, smartSmithWaterman_, smitWatermanGapSizeMax_, splitAlignments_,
         alignmentCfg_.gapMatchScore_, alignmentCfg_.gapMismatchScore_, alignmentCfg_.gapOpenScore_, alignmentCfg_.gapExtendScore_, alignmentCfg_.minGapExtendScore_, alignmentCfg_.splitGapLength_,
-        dodgyAlignmentScore_, anomalousPairScoreMin_,
+        dodgyAlignmentScore_, anomalousPairHandicap_,
         qScoreBin_,
         fullBclQScoreTable_,
         targetBinLength_,

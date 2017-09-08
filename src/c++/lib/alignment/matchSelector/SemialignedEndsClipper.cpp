@@ -1,6 +1,6 @@
 /**
  ** Isaac Genome Alignment Software
- ** Copyright (c) 2010-2014 Illumina, Inc.
+ ** Copyright (c) 2010-2017 Illumina, Inc.
  ** All rights reserved.
  **
  ** This software is provided under the terms and conditions of the
@@ -182,20 +182,27 @@ void SemialignedEndsClipper::clip(
 {
     for (unsigned k = 0; k < bamTemplate.getFragmentCount(); ++k)
     {
-        FragmentMetadata &fragment = bamTemplate.getFragmentMetadata(k);
+        FragmentMetadata fragment = bamTemplate.getFragmentMetadata(k);
         if (clip(contigList, fragment))
         {
             if (2 == bamTemplate.getFragmentCount())
             {
-                FragmentMetadata &mate = bamTemplate.getMateFragmentMetadata(fragment);
+                FragmentMetadata mate = bamTemplate.getMateFragmentMetadata(fragment);
                 if (!mate.isAligned())
                 {
                     // For shadow mates, the position needs to be updated in case the soft clipping
                     // changed the position of the singleton.
                     mate.position = fragment.position;
                     // paired template mate is unaligned, no point to continue;
+
+                    bamTemplate = BamTemplate(fragment, mate, false);
                     break;
                 }
+                bamTemplate = BamTemplate(fragment, bamTemplate.getMateFragmentMetadata(fragment), bamTemplate.isProperPair(), bamTemplate.getAlignmentScore());
+            }
+            else
+            {
+                bamTemplate = BamTemplate(fragment);
             }
         }
     }

@@ -1,6 +1,6 @@
 /**
  ** Isaac Genome Alignment Software
- ** Copyright (c) 2010-2014 Illumina, Inc.
+ ** Copyright (c) 2010-2017 Illumina, Inc.
  ** All rights reserved.
  **
  ** This software is provided under the terms and conditions of the
@@ -65,8 +65,12 @@ void traceQQ(
     {
         os << "-1\t" << -10 * log10(double(downgradedBad) / double(downgraded)) << "\t" << downgradedBad << "\t" << downgraded << std::endl;
     }
-    const std::size_t toTrace = std::distance(alignmentsByScore.begin(), std::find_if(alignmentsByScore.rbegin(), alignmentsByScore.rend(), [](const std::size_t c){return c;}).base());
-    for (std::size_t i= 0; i < toTrace; ++i)
+    const std::size_t toTrace =
+        std::distance(
+            alignmentsByScore.begin(),
+            std::find_if(alignmentsByScore.rbegin(), alignmentsByScore.rend(),
+                [](const std::size_t c){return c;}).base());
+    for (std::size_t i= 0; i <= toTrace; ++i)
     {
         if (alignmentsByScore[i])
         {
@@ -87,19 +91,19 @@ MapqStatistics::~MapqStatistics()
         {
             ISAAC_THREAD_CERR << "Storing SM QQ stats in " << outputSmFilePath_.c_str() << std::endl;
             std::ofstream smTsv(outputSmFilePath_.c_str());
-            traceQQ(smTsv, unalignedFragments_, downgradedAlignments_, badDowngradedAlignments_, alignmentsBySm_, badAlignmentsBySm_);
+            traceQQ(smTsv, unalignedFragments_, downgradedSm_, badDowngradedSm_, alignmentsBySm_, badAlignmentsBySm_);
         }
 
         {
             ISAAC_THREAD_CERR << "Storing AS QQ stats in " << outputAsFilePath_.c_str() << std::endl;
             std::ofstream asTsv(outputAsFilePath_.c_str());
-            traceQQ(asTsv, unalignedFragments_, downgradedAlignments_, badDowngradedAlignments_, alignmentsByAs_, badAlignmentsByAs_);
+            traceQQ(asTsv, unalignedFragments_, downgradedAs_, badDowngradedAs_, alignmentsByAs_, badAlignmentsByAs_);
         }
 
         {
             ISAAC_THREAD_CERR << "Storing MAPQ QQ stats in " << outputMapqFilePath_.c_str() << std::endl;
             std::ofstream mapqTsv(outputMapqFilePath_.c_str());
-            traceQQ(mapqTsv, unalignedFragments_, downgradedAlignments_, badDowngradedAlignments_, alignmentsByMapq_, badAlignmentsByMapq_);
+            traceQQ(mapqTsv, unalignedFragments_, downgradedMapq_, badDowngradedMapq_, alignmentsByMapq_, badAlignmentsByMapq_);
         }
     }
 }
@@ -114,40 +118,64 @@ MapqStatistics::~MapqStatistics()
 //    return !fragment.isAligned();
 //}
 
-void MapqStatistics::updateMapqHistograms(
+bool MapqStatistics::updateMapqHistograms(
     const BamTemplate& bamTemplate,
     const std::size_t readIndex,
     const FragmentMetadata& fragment,
     const FragmentMetadata *mate)
 {
-//    if (fragment.hasAlignmentScore())
+    bool ret = true;
+
+    const bool correct = alignsCorrectly(readIndex, fragment);
+
+    if (fragment.hasAlignmentScore())
     {
         ++alignmentsBySm_[std::min<unsigned>(fragment.getAlignmentScore(), alignmentsBySm_.size() - 1)];
+//        ret = true;
     }
-    if (bamTemplate.hasAlignmentScore())
+    else
+    {
+        ++downgradedSm_;
+        badDowngradedSm_ += correct;
+    }
+
+    if (bamTemplate.hasAlignmentScore() && fragment.hasAlignmentScore() && mate->hasAlignmentScore() && bamTemplate.isProperPair())
     {
         ++alignmentsByAs_[std::min<unsigned>(bamTemplate.getAlignmentScore(), alignmentsByAs_.size() - 1)];
     }
-//    if (fragment.hasMapQ())
+    else
+    {
+        ++downgradedAs_;
+        badDowngradedAs_ += correct;
+    }
+
+    if (fragment.hasMapQ())
     {
         ++alignmentsByMapq_[std::min<unsigned>(fragment.mapQ, alignmentsByMapq_.size() - 1)];
     }
+    else
+    {
+        ++downgradedMapq_;
+        badDowngradedMapq_ += correct;
+    }
 //    ++alignmentsByMapq_[std::min<unsigned>(mapQ, alignmentsByMapq_.size() - 1)];
-    if (!alignsCorrectly(readIndex, fragment))
+    if (!correct)
     {
         if (fragment.hasAlignmentScore())
         {
             ++badAlignmentsBySm_[std::min<unsigned >(fragment.getAlignmentScore(), badAlignmentsBySm_.size() - 1)];
         }
-        if (bamTemplate.hasAlignmentScore())
+//        if (bamTemplate.hasAlignmentScore())
+        if (bamTemplate.hasAlignmentScore() && fragment.hasAlignmentScore() && mate->hasAlignmentScore() && bamTemplate.isProperPair())
         {
             ++badAlignmentsByAs_[std::min<unsigned >(bamTemplate.getAlignmentScore(), badAlignmentsByAs_.size() - 1)];
         }
         if (fragment.hasMapQ())
         {
-            ++badAlignmentsByMapq_[std::min<unsigned >(fragment.mapQ, alignmentsByMapq_.size() - 1)];
+            ++badAlignmentsByMapq_[std::min<unsigned >(fragment.mapQ, badAlignmentsByMapq_.size() - 1)];
         }
     }
+    return ret;
 }
 
 bool MapqStatistics::updateStat(
@@ -163,18 +191,7 @@ bool MapqStatistics::updateStat(
     else
     {
 //        if (fragment.mismatchCount || 2 != fragment.secondBestMismatchDelta)//fragment.dodgy)
-//        if (fragment.dodgy)
-//        {
-//            ++downgradedAlignments_;
-//            if (!alignsCorrectly(readNumber, fragment))
-//            {
-//                ++badDowngradedAlignments_;
-//            }
-//        }
-//        else
-        {
-            updateMapqHistograms(bamTemplate, readNumber, fragment, mate);
-        }
+        return updateMapqHistograms(bamTemplate, readNumber, fragment, mate);
     }
 
     return false;
@@ -191,8 +208,12 @@ MapqStatistics::MapqStatistics(
     outputSmFilePath_(outputSmFilePath),
     outputAsFilePath_(outputAsFilePath),
     unalignedFragments_(0),
-    downgradedAlignments_(0),
-    badDowngradedAlignments_(0)
+    downgradedMapq_(0),
+    badDowngradedMapq_(0),
+    downgradedSm_(0),
+    badDowngradedSm_(0),
+    downgradedAs_(0),
+    badDowngradedAs_(0)
 {
     for (auto &a : alignmentsBySm_) {a = 0;}
     for (auto &a : badAlignmentsBySm_) {a = 0;}

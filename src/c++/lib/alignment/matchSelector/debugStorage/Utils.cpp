@@ -1,6 +1,6 @@
 /**
  ** Isaac Genome Alignment Software
- ** Copyright (c) 2010-2014 Illumina, Inc.
+ ** Copyright (c) 2010-2017 Illumina, Inc.
  ** All rights reserved.
  **
  ** This software is provided under the terms and conditions of the
@@ -55,38 +55,6 @@ std::pair<BclClusters::const_iterator, BclClusters::const_iterator> getDebugName
     return ret;
 }
 
-reference::ReferencePosition getAlignmentPositionFromName(const std::size_t readNumber, const FragmentMetadata &fragment)
-{
-    // numbers are 1-based
-    const auto name = getDebugName(readNumber - 1, fragment);
-
-    if (name.second == name.first)
-    {
-        return reference::ReferencePosition(reference::ReferencePosition::TooManyMatch);
-    }
-
-    const auto mateName = getDebugName(!(readNumber - 1), fragment);
-
-    if (mateName.second == mateName.first)
-    {
-        return reference::ReferencePosition(reference::ReferencePosition::TooManyMatch);
-    }
-
-    // simulated data is assumed to be paired for the moment. With real data, assume that input singletons are aligned correctly since
-    // they are most likely incorrectly aligned in the input anyway.
-    if ('u' == *name.first || 'u' == *mateName.first)
-    {
-//        ISAAC_ASSERT_MSG(false, common::makeFastIoString(fragment.getCluster().nameBegin(), fragment.getCluster().nameEnd()) << " " << fragment);
-//        return reference::ReferencePosition(reference::ReferencePosition::NoMatch);
-        // unaligned are present in bams from real aligners such as bwa. Pretend that whatever they don't align we align correctly
-        return reference::ReferencePosition(reference::ReferencePosition::TooManyMatch);
-    }
-    return reference::ReferencePosition(
-        std::atol(&*name.first + 2),
-        std::atol(&*std::find(name.first + 2, name.second, ':') + 1),
-		'r' == *name.first);
-}
-
 std::pair<const char *, const char *> getCigarFromName(const std::size_t readNumber, const FragmentMetadata &fragment)
 {
     // numbers are 1-based
@@ -117,6 +85,44 @@ std::pair<const char *, const char *> getCigarFromName(const std::size_t readNum
     return ret;
 }
 
+reference::ReferencePosition getAlignmentPositionFromName(const std::size_t readNumber, const FragmentMetadata &fragment)
+{
+    // numbers are 1-based
+    const auto name = getDebugName(readNumber - 1, fragment);
+
+    if (name.second == name.first)
+    {
+        return reference::ReferencePosition(reference::ReferencePosition::TooManyMatch);
+    }
+
+    const auto mateName = getDebugName(!(readNumber - 1), fragment);
+
+    if (mateName.second == mateName.first)
+    {
+        return reference::ReferencePosition(reference::ReferencePosition::TooManyMatch);
+    }
+
+    // simulated data is assumed to be paired for the moment. With real data, assume that input singletons are aligned correctly since
+    // they are most likely incorrectly aligned in the input anyway.
+    if ('u' == *name.first || 'u' == *mateName.first)
+    {
+//        ISAAC_ASSERT_MSG(false, common::makeFastIoString(fragment.getCluster().nameBegin(), fragment.getCluster().nameEnd()) << " " << fragment);
+//        return reference::ReferencePosition(reference::ReferencePosition::NoMatch);
+        // unaligned are present in bams from real aligners such as bwa. Pretend that whatever they don't align we align correctly
+        return reference::ReferencePosition(reference::ReferencePosition::TooManyMatch);
+    }
+
+    std::pair<const char *, const char *> nameCigar = getCigarFromName(readNumber, fragment);
+    ISAAC_ASSERT_MSG(nameCigar.first != nameCigar.second, "Unexpected empty CIGAR " << fragment);
+
+    const unsigned leftClipped = 'S' != *nameCigar.first ? 0 :
+        common::getUnsignedInteger(nameCigar.first + 1, nameCigar.second);
+
+    return reference::ReferencePosition(
+        std::atol(&*name.first + 2),
+        std::atol(&*std::find(name.first + 2, name.second, ':') + 1) - leftClipped,
+        'r' == *name.first);
+}
 
 bool compareCigars(const std::size_t readNumber, const FragmentMetadata &fragment)
 {
@@ -140,20 +146,21 @@ bool compareCigars(const std::size_t readNumber, const FragmentMetadata &fragmen
 
 bool alignsCorrectly(const std::size_t readNumber, const FragmentMetadata &fragment)
 {
-    if (alignment::containsHomopolymer(fragment.getStrandSequence().begin(), fragment.getStrandSequence().end()))
-    {
-        return true;
-    }
+//    if (alignment::containsHomopolymer(fragment.getStrandSequence().begin(), fragment.getStrandSequence().end()))
+//    {
+//        return true;
+//    }
     const reference::ReferencePosition oriPos = getAlignmentPositionFromName(readNumber, fragment);
     if (oriPos.isTooManyMatch())
     {
         return true;
     }
-//    ISAAC_THREAD_CERR << "oriPos:" << oriPos << " name " << common::makeFastIoString(fragment.getCluster().nameBegin(), fragment.getCluster().nameEnd()) << std::endl;
     return fragment.isReverse() == oriPos.reverse() &&
         fragment.getContigId() == oriPos.getContigId() &&
-        uint64_t(fragment.getPosition()) == oriPos.getPosition() &&
-        compareCigars(readNumber, fragment);
+//        std::abs(int64_t(fragment.getPosition()) - int64_t(oriPos.getPosition())) < 20;
+        std::abs(int64_t(fragment.getUnclippedPosition()) - int64_t(oriPos.getPosition())) < 20;
+//        uint64_t(fragment.getPosition()) == oriPos.getPosition() &&
+//        compareCigars(readNumber, fragment);
 }
 
 } // namespace debugStroage

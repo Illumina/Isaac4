@@ -1,3 +1,30 @@
+Isaac-04.17.09.06
+* SAAC-1302 When double-checking anomalous pair score the assumed orphan using both seed and rescued candidates
+* SAAC-1301 AS tag present in rescued shadow pairs confusing
+
+Isaac-04.17.09.05
+* SAAC-1299 Pairing code ignores the limit on maximum number of best pairs
+* SAAC-1300 Smith waterman score should be signed
+* SAAC-1296 explicit inline for mergeSeedHit brings single tile down to 14 seconds from 16
+
+Isaac-04.17.08.22
+* SAAC-1293 Memory control failure when --candidate-matches-max is smaller than --repeat-threshold
+* SAAC-1294 --with-dev-stats produces inconsistent counts
+* SAAC-1292 compare unclipped positions in validation
+
+Isaac-04.17.08.14
+* SAAC-1289 Isaac fails to mark duplicates when inversions have different quality trimming
+
+Isaac-04.17.08.04
+* SAAC-1282 --with-dev-stats usability for STE validation
+
+Isaac-04.17.07.21
+* SAAC-1274 performance improvements
+* SAAC-1275 orphan does not get PE-trimmed when rescuing anomalous repeat mate
+
+Isaac-04.17.07.20
+* SAAC-1253 Isaac crashes when using Intel zlib
+
 Isaac-04.17.06.15
 * SAAC-1273 specific gapped alignments discard ungapped alignments which sometimes leads to loss of SV evidence
 
