@@ -36,7 +36,7 @@ namespace bamDataSource
 
 void TempFileClusterExtractor::open(const boost::filesystem::path &tempFilePath, std::streamsize expectedFileSize)
 {
-    if (tempFilePath_ != tempFilePath)
+    if (tempFilePath_ != tempFilePath.c_str())
     {
         recordIndex_.clear();
         unpairedReadsFile_.reopen(tempFilePath.c_str(), io::FileBufWithReopen::SequentialOnce);
@@ -96,7 +96,7 @@ void UnpairedReadsCache::storeUnpaired(
         const bam::BamBlockHeader &block = idx.getBlock();
 
         byteBuff.clear();
-        extractReadName(block, maxReadNameLength_, std::back_inserter(byteBuff));
+        extractReadName(block, maxReadNameLength_, readMetadata, std::back_inserter(byteBuff));
         ISAAC_ASSERT_MSG(byteBuff.size() == maxReadNameLength_, "Invalid number of name bytes extracted");
         byteBuff.push_back(0);// 0 terminator is needed for name comparison during extraction
         const unsigned nameCrc = getNameCrc<7>(crcWidth_, byteBuff.begin(), maxReadNameLength_);

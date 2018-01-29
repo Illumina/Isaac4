@@ -87,7 +87,7 @@ AlignOptions::AlignOptions()
     , sampleSheetStringList(1, (package::expandPath(iSAAC_FULL_DATADIR) / "validation" / "validation.csv").string())
 #endif //ISAAC_DEV_STATS_ENABLED
     , barcodeMismatchesStringList(1, "1")
-    , hashTableBucketCount(0x100000000)
+    , hashTableBucketCount(0)
     , referenceName("default")
     , tempDirectoryString("./Temp")
     , outputDirectoryString("./Aligned")
@@ -396,8 +396,9 @@ AlignOptions::AlignOptions()
                 "Bam and fastq only. When not set, number of clusters to process together when input is bam or fastq is computed "
                 "automatically based on the amount of available RAM. Set to non-zero value to force deterministic behavior.")
         ("hash-table-buckets"         , bpo::value<uint64_t>(&hashTableBucketCount)->default_value(hashTableBucketCount),
-                "Number of buckets to use for reference hash table. Larger number of buckets requires more RAM but it tends"
-                "to speed up the execution.")
+                "Number of buckets to use for reference hash table. Larger number of buckets requires more RAM but it tends "
+                "to speed up the execution and improve sensitivity. "
+                "Value of 0 indicates default bucket count: 2^({seed-length}*2)")
 
         ("mapq-threshold"           , bpo::value<int>(&mapqThreshold)->default_value(mapqThreshold),
                 "If any fragment alignment in template is below the threshold, template is not stored in the BAM.")
@@ -1389,8 +1390,16 @@ void AlignOptions::postProcess(bpo::variables_map &vm)
     optionalFeatures = parseBamExcludeTags(bamExcludeTags);
     parseQScoreBinValues();
     parseBamExcludeTags();
+    parseHashTableBuckets();
 }
 
+void AlignOptions::parseHashTableBuckets()
+{
+    if (!hashTableBucketCount)
+    {
+        hashTableBucketCount = std::size_t(1) << (seedLength * 2);
+    }
+}
 
 // Set the score of the boost::array
 void setScore(boost::array<char, 256> &table, const unsigned int idx, const unsigned int value)

@@ -34,29 +34,21 @@ struct AlignmentCfg
         const int gapExtendScore,
         const int minGapExtendScore,
         const unsigned splitGapLength)
-    : gapMatchScore_(gapMatchScore)
-    , gapMismatchScore_(gapMismatchScore)
+    : matchScore_(gapMatchScore)
+    , mismatchScore_(gapMismatchScore)
     , gapOpenScore_(gapOpenScore)
     , gapExtendScore_(gapExtendScore)
     , minGapExtendScore_(minGapExtendScore)
-    , normalizedMismatchScore_(gapMatchScore - gapMismatchScore)
-    , normalizedGapOpenScore_(gapMatchScore - gapOpenScore)
-    , normalizedGapExtendScore_(gapMatchScore - gapExtendScore)
-    , normalizedMaxGapExtendScore_(-minGapExtendScore)
     , splitGapLength_(splitGapLength)
     {
     }
 
-    const int gapMatchScore_;
-    const int gapMismatchScore_;
+    const int matchScore_;
+    const int mismatchScore_;
     const int gapOpenScore_;
     const int gapExtendScore_;
     const int minGapExtendScore_;
 
-    const unsigned normalizedMismatchScore_;
-    const unsigned normalizedGapOpenScore_;
-    const unsigned normalizedGapExtendScore_;
-    const unsigned normalizedMaxGapExtendScore_;
     const unsigned splitGapLength_;
 };
 

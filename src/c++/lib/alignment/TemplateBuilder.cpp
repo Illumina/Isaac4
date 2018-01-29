@@ -233,8 +233,8 @@ bool TemplateBuilder::locateBestAnchoredPair(
     ret.clear();
     unsigned bestPairsLeft = bestPairsMax;
 
-    const auto bestR1 = fragments[0].begin();
-    const auto bestR2 = fragments[1].begin();
+//    const auto bestR1 = fragments[0].begin();
+//    const auto bestR2 = fragments[1].begin();
     for(FragmentIterator r1Fragment = fragments[0].begin(); bestPairsLeft && fragments[0].end() != r1Fragment; ++r1Fragment)
     {
         //ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(r1Fragment->getCluster().getId(), " locateBestAnchoredPair r1Fragment:" << *r1Fragment);
@@ -243,19 +243,19 @@ bool TemplateBuilder::locateBestAnchoredPair(
 //        {
 //            ++pairClassCounts_.decoyR1Candidates_;
 //        }
-        if (!FragmentMetadata::alignmentsEquivalent(*bestR1, *r1Fragment))
-        {
-            ISAAC_ASSERT_MSG(!r1Fragment->isBetterGapped(*bestR1) || !r1Fragment->isBetterUngapped(*bestR1), "Incorrect candidate order. Expected sorted best on top " << *bestR1 << " vs " << *r1Fragment);
-            break;
-        }
+//        if (!FragmentMetadata::alignmentsEquivalent(*bestR1, *r1Fragment))
+//        {
+//            ISAAC_ASSERT_MSG(!r1Fragment->isBetterGapped(*bestR1) || !r1Fragment->isBetterUngapped(*bestR1), "Incorrect candidate order. Expected sorted best on top " << *bestR1 << " vs " << *r1Fragment);
+//            break;
+//        }
         for(FragmentIterator r2Fragment = fragments[1].begin(); bestPairsLeft && fragments[1].end() != r2Fragment; ++r2Fragment)
         {
             //ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(r2Fragment->getCluster().getId(), " locateBestAnchoredPair r2Fragment:" << *r2Fragment);
-            if (!FragmentMetadata::alignmentsEquivalent(*bestR2, *r2Fragment))
-            {
-                ISAAC_ASSERT_MSG(!r2Fragment->isBetterGapped(*bestR2) || !r2Fragment->isBetterUngapped(*bestR2), "Incorrect candidate order. Expected sorted best on top " << *bestR2<< " vs " << *r2Fragment);
-                break;
-            }
+//            if (!FragmentMetadata::alignmentsEquivalent(*bestR2, *r2Fragment))
+//            {
+//                ISAAC_ASSERT_MSG(!r2Fragment->isBetterGapped(*bestR2) || !r2Fragment->isBetterUngapped(*bestR2), "Incorrect candidate order. Expected sorted best on top " << *bestR2<< " vs " << *r2Fragment);
+//                break;
+//            }
             int res = updateBestAnchoredPair(anomalousPairHandicap_, rog, tls, *r1Fragment, *r2Fragment, ret);
             // not strictly counting best, as there is no guarantee that they come in best to worst order, but should be
             // a reasonable approximation to avoid accumulating insane number of repeats.

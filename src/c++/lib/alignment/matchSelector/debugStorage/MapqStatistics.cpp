@@ -187,6 +187,7 @@ bool MapqStatistics::updateStat(
     if (/*debugClassFilter_ != bamTemplate.debugClass_||*/ !fragment.isAligned())
     {
         ++unalignedFragments_;
+        return true;
     }
     else
     {
@@ -194,7 +195,7 @@ bool MapqStatistics::updateStat(
         return updateMapqHistograms(bamTemplate, readNumber, fragment, mate);
     }
 
-    return false;
+//    return false;
 }
 
 

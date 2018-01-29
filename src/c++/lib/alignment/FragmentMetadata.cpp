@@ -41,14 +41,14 @@ int64_t FragmentMetadata::processBackDels(const AlignmentCfg &cfg, const Cigar &
             case Cigar::DELETE:
             {
                 ret += cigar.first;
-                this->smithWatermanScore += cfg.normalizedGapOpenScore_ + std::min(cfg.normalizedMaxGapExtendScore_, (cigar.first - 1) * cfg.normalizedGapExtendScore_);
+                this->smithWatermanScore += -cfg.gapOpenScore_ + -std::max(cfg.minGapExtendScore_, int(cigar.first - 1) * cfg.gapExtendScore_);
                 break;
             }
 
             case Cigar::BACK:
             {
                 ret -= cigar.first;
-                this->smithWatermanScore += cfg.normalizedGapOpenScore_ + std::min(cfg.normalizedMaxGapExtendScore_, (cigar.first - 1) * cfg.normalizedGapExtendScore_);
+                this->smithWatermanScore += -cfg.gapOpenScore_ + -std::max(cfg.minGapExtendScore_, int(cigar.first - 1) * cfg.gapExtendScore_);
                 break;
             }
 
@@ -221,7 +221,7 @@ void FragmentMetadata::processInsertion(
     //                arg, referenceBegin + currentPosition, sequenceBegin + currentBase, qualityBegin + currentBase);
     this->editDistance += length;
     ++this->gapCount;
-    this->smithWatermanScore += cfg.normalizedGapOpenScore_ + std::min(cfg.normalizedMaxGapExtendScore_, (length - 1) * cfg.normalizedGapExtendScore_);
+    this->smithWatermanScore += -cfg.gapOpenScore_ + -std::max(cfg.minGapExtendScore_, int(length - 1) * cfg.gapExtendScore_);
 //    this->smithWatermanScore += cfg.normalizedGapOpenScore_ + (length - 1) * cfg.normalizedGapExtendScore_;
     offset += length;
 }
@@ -238,7 +238,7 @@ void FragmentMetadata::processDeletion(
     this->editDistance += length;
     ++this->gapCount;
     this->smithWatermanScore +=
-        cfg.normalizedGapOpenScore_ + std::min(cfg.normalizedMaxGapExtendScore_, (length - 1) * cfg.normalizedGapExtendScore_);
+        -cfg.gapOpenScore_ + -std::max(cfg.minGapExtendScore_, int(length - 1) * cfg.gapExtendScore_);
     this->splitAlignment |= (length > cfg.splitGapLength_);
     currentPosition += length;
 }
@@ -255,7 +255,7 @@ void FragmentMetadata::processNegativeDeletion(
     this->editDistance += length;
     ++this->gapCount;
     this->smithWatermanScore +=
-        cfg.normalizedGapOpenScore_ + std::min(cfg.normalizedMaxGapExtendScore_, (length - 1) * cfg.normalizedGapExtendScore_);
+        -cfg.gapOpenScore_ + -std::max(cfg.minGapExtendScore_, int(length - 1) * cfg.gapExtendScore_);
     this->splitAlignment = true;
     currentPosition -= length;
 }
@@ -299,7 +299,7 @@ void FragmentMetadata::processContigChange(
     referenceBegin = contigList.at(newContigId).begin();
     currentContigId = newContigId;
     ++this->gapCount;
-    this->smithWatermanScore += cfg.normalizedGapOpenScore_;
+    this->smithWatermanScore += -cfg.gapOpenScore_;
     this->splitAlignment = true;
 }
 
@@ -318,7 +318,7 @@ void FragmentMetadata::processFlip(
     qualityBegin = read.getStrandQuality(currentReverse).begin();
     qualityEnd = read.getStrandQuality(currentReverse).end();
     currentBase = read.getLength() - currentBase - length;
-    this->smithWatermanScore += cfg.normalizedGapOpenScore_;
+    this->smithWatermanScore += -cfg.gapOpenScore_;
     this->splitAlignment = true;
     // Notice, this will count flips followed by CONTIG or position adjustment as multiple gaps which is probably not
     // ideal, but so far the gapCount is not being used for anything that requires precise value.
@@ -358,7 +358,8 @@ unsigned iSAAC_PROFILING_NOINLINE FragmentMetadata::processAlign(
     const unsigned matches = length - mismatches;
 
     this->mismatchCount += mismatches;
-    this->smithWatermanScore += cfg.normalizedMismatchScore_ * mismatches;
+    this->smithWatermanScore += -cfg.matchScore_ * matches;
+    this->smithWatermanScore += -cfg.mismatchScore_ * mismatches;
 
 //    the edit distance includes all mismatches and ambiguous bases (Ns)
 //    this->editDistance += std::inner_product(

@@ -37,9 +37,9 @@ set(iSAAC_STRING "Isaac")
 # newer than alphabetic Jira ticket name in marketing version ensures it is easy to locate the branch and that
 # the branch builds will never upgrade the properly released version 
 set(iSAAC_VERSION_MAJOR 04)
-set(iSAAC_VERSION_MINOR 17)
-set(iSAAC_VERSION_PATCH 09)
-set(iSAAC_VERSION_DEVEL 06)
+set(iSAAC_VERSION_MINOR 18)
+set(iSAAC_VERSION_PATCH 01)
+set(iSAAC_VERSION_DEVEL 19)
 set(iSAAC_VERSION_FULL "${iSAAC_STRING}-${iSAAC_VERSION_MAJOR}.${iSAAC_VERSION_MINOR}.${iSAAC_VERSION_PATCH}.${iSAAC_VERSION_DEVEL}")
 
 if (CPACK_GENERATOR)
@@ -116,17 +116,17 @@ set (iSAAC_BOOST_COMPONENTS date_time filesystem iostreams program_options
 set (Boost_USE_MULTITHREAD ON)
 
 # required libxml2 and libxslt libraries
-set (iSAAC_LIBXML2_VERSION 2.7.8)
+set (iSAAC_LIBXML2_VERSION 2.9.6)
 set (LIBXML2_REDIST_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../redist")
 set (LIBXSLT_REDIST_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../redist")
 
 set (LIBXML2_INSTAL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../redist")
 set (LIBXSLT_INSTAL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../redist")
 
-set (iSAAC_LIBXSLT_VERSION 1.1.26)
+set (iSAAC_LIBXSLT_VERSION 1.1.31)
 set (LIBXSLT_REDIST_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../redist")
 
-set (iSAAC_LIBEXSLT_VERSION 0.8.15)
+set (iSAAC_LIBEXSLT_VERSION 0.8.19)
 
 # globals and macros
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")

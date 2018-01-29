@@ -175,12 +175,7 @@ public:
         const bool smartSmithWaterman,
         const unsigned smithWatermanGapSizeMax,
         const bool splitAlignments,
-        const int gapMatchScore,
-        const int gapMismatchScore,
-        const int gapOpenScore,
-        const int gapExtendScore,
-        const int minGapExtendScore,
-        const unsigned splitGapLength,
+        const alignment::AlignmentCfg &alignmentCfg,
         const alignment::TemplateBuilder::DodgyAlignmentScore dodgyAlignmentScore,
         const unsigned anomalousPairHandicap,
         const bool qScoreBin,
@@ -277,7 +272,7 @@ private:
     bool forceTermination_ = false;
 
     const isaac::reference::NumaContigLists &contigLists_;
-    alignment::AlignmentCfg alignmentCfg_;
+    const alignment::AlignmentCfg &alignmentCfg_;
     alignment::MatchSelector matchSelector_;
     bool qScoreBin_;
     const boost::array<char, 256> &fullBclQScoreTable_;

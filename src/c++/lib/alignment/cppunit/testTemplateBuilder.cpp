@@ -436,7 +436,7 @@ void TestTemplateBuilder::testMultiple()
     FragmentMetadata best1 = fragments[1].front();
     templateBuilder.buildCombinationTemplate(contigList, restOfGenomeCorrection, readMetadataList, fragments, cluster0, tls, bamTemplate);
 
-    CPPUNIT_ASSERT_EQUAL(1101U, bamTemplate.getAlignmentScore());
+    CPPUNIT_ASSERT_EQUAL(9U, bamTemplate.getAlignmentScore());
     // check the first read
     CPPUNIT_ASSERT_EQUAL(unsigned(best0.getFStrandReferencePosition().getContigId()), bamTemplate.getFragmentMetadata(0).contigId);
     CPPUNIT_ASSERT_EQUAL(int64_t(best0.getFStrandReferencePosition().getPosition()), bamTemplate.getFragmentMetadata(0).position);

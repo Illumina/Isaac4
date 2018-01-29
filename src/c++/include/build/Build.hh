@@ -218,7 +218,6 @@ private:
         const ExceptionDataT &errorData);
 
     boost::shared_ptr<BinData> allocateBin(
-        const std::size_t maxDataSize,
         boost::unique_lock<boost::mutex> &lock,
         alignment::BinMetadataCRefList::iterator &thisThreadBinIt,
         alignment::BinMetadataCRefList::iterator &nextUnprocessedBinIt,

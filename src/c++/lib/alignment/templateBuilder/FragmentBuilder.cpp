@@ -85,7 +85,7 @@ FragmentBuilder::FragmentBuilder(
 //        ISAAC_TRACE_STAT("FragmentBuilder before mergeBuffer_.reserve");
         // have buffer for one more than repeatThreshold_ as we have to insert new before we can remove the worst one
 //        ISAAC_TRACE_STAT("FragmentBuilder before bestMatches_.reserve");
-        bestMatches_.reserve(repeatThreshold_ + 1);
+        bestMatches_.reserve(repeatThreshold_ + 2);
 //        ISAAC_TRACE_STAT("FragmentBuilder after bestMatches_.reserve");
         ISAAC_ASSERT_MSG(MIN_CANDIDATES < repeatThreshold_, "repeatThreshold_ " << repeatThreshold_ << " is less than MIN_CANDIDATES " << MIN_CANDIDATES);
         oneFragmentCigarBuffer_.reserve(10240);
@@ -132,7 +132,10 @@ FragmentBuilder::FragmentBuilder(
 //    return alignment::countMismatches(sequenceBegin, sequenceEnd, contig.begin() + alignmentPosition);
 //}
 
-void iSAAC_PROFILING_NOINLINE FragmentBuilder::updateBestMatches(
+/**
+ * \return false if we've gone over repeat threshold with perfect candidates
+ */
+bool iSAAC_PROFILING_NOINLINE FragmentBuilder::updateBestMatches(
     const Match &match,
     const unsigned mismatches,
     std::vector<BestMatch> &bestMatches) const
@@ -148,9 +151,14 @@ void iSAAC_PROFILING_NOINLINE FragmentBuilder::updateBestMatches(
             std::pop_heap(bestMatches.begin(), bestMatches.end(),
                            [](const BestMatch &left, const BestMatch &right)
                            {return left.mismatches_ < right.mismatches_;});
+            if (!bestMatches.back().mismatches_)
+            {
+                return false;
+            }
             bestMatches.pop_back();
         }
     }
+    return true;
 }
 
 unsigned countMismatches(
@@ -180,7 +188,10 @@ unsigned countMismatches(
 //    __builtin_prefetch(&*(contigList.referenceBegin() + alignmentReferenceOffset + 96), 0, 0);
 //}
 
-void FragmentBuilder::collectBestMatches(
+/**
+ * \return false if we've gone over repeat threshold with perfect candidates
+ */
+bool FragmentBuilder::collectBestMatches(
     const Matches& matches,
     const reference::ContigList& contigList, const Read &read,
 //    std::size_t &counts,
@@ -200,8 +211,13 @@ void FragmentBuilder::collectBestMatches(
         const unsigned mismatches = countMismatches(match, contigList, read);
 
 //        ++counts;
-        updateBestMatches(match, mismatches, bestMatches);
+        if (!updateBestMatches(match, mismatches, bestMatches))
+        {
+            return false;
+        }
     }
+
+    return true;
 }
 
 //void FragmentBuilder::updateHitStats(const common::StaticVector<int, CHECK_MATCH_GROUPS_MAX>& seedCounts,
@@ -251,16 +267,41 @@ AlignmentType FragmentBuilder::findBestMatches(
 //        std::sort(matches.begin(), matches.end(), [](const Match &left, const Match &right)
 //                  {return left.contigListOffset_ < right.contigListOffset_;});
 
-        collectBestMatches(
+        if (!collectBestMatches(
             matches, contigList, cluster.at(readMetadata.getIndex()),
             //counts[countsIndex],
-            bestMatches);
+            bestMatches))
+        {
+            // early termination as we've gone over repeatThreshold with all perfect candidates
+            return Rm;
+        }
 //        countsIndex += !matches.empty();
     }
 
 //    updateHitStats(seedCounts, counts);
 
-    return bestMatches.empty() ? Nm : Normal;
+    if (bestMatches.empty())
+    {
+        return Nm;
+    }
+
+    // we have repeatThreshold + 1 matches. If all of them are equivalent, we've gone over the repeatThreshold
+    if (bestMatches.size() == bestMatches.capacity() - 1)
+    {
+        if (bestMatches.end() == std::find_if(bestMatches.begin() + 1, bestMatches.end(),
+            [&bestMatches](const BestMatch &match){return match.mismatches_ != bestMatches.front().mismatches_;}))
+        {
+            return Rm;
+        }
+        // we still have more than we should, get rid of the worst one
+        std::pop_heap(bestMatches.begin(), bestMatches.end(),
+                       [](const BestMatch &left, const BestMatch &right)
+                       {return left.mismatches_ < right.mismatches_;});
+        bestMatches.pop_back();
+
+    }
+
+    return Normal;
 }
 
 /**

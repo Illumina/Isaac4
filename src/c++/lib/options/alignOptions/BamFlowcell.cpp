@@ -209,7 +209,7 @@ flowcell::Layout BamFlowcell::createFilteredFlowcell(
 
     BamFlowcellInfo flowcellInfo = parseBamFlowcellInfo(
         flowcellFilePath, allowVariableReadLength,
-        "default" != useBasesMask && std::string::npos == useBasesMask.find('*'),
+        !isWildcardUseBasesMask(useBasesMask),
         readNameLength);
 
     std::vector<unsigned int> readLengths;

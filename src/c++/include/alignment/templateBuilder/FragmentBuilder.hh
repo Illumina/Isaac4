@@ -245,12 +245,12 @@ private:
         FragmentSequencingAdapterClipper &adapterClipper,
         FragmentMetadataList &fragments) const;
 
-    void updateBestMatches(
+    bool updateBestMatches(
         const Match &match,
         const unsigned mismatches,
         std::vector<BestMatch> &bestMatches) const;
 
-    void collectBestMatches(
+    bool collectBestMatches(
         const Matches& matches, const reference::ContigList& contigList, const Read& read,
         //std::size_t &counts,
         std::vector<BestMatch>& bestMatches) const;

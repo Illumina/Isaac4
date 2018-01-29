@@ -868,9 +868,6 @@ bool SplitReadAligner::mergeInsertionAlignments(
     const unsigned insertionLength,
     const flowcell::ReadMetadata &readMetadata) const
 {
-    const std::vector<char>::const_iterator sequenceBegin =
-        headAlignment.getRead().getStrandSequence(headAlignment.reverse).begin();
-
     const int64_t clippingPositionOffset = headAlignment.getBeginClippedLength();
     const unsigned leftMapped = bestOffset - clippingPositionOffset;
     ISAAC_ASSERT_MSG(leftMapped <= headAlignment.getReadLength(), "leftMapped " << leftMapped << " is too bit for read length " << headAlignment.getReadLength());

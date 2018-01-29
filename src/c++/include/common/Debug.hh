@@ -138,8 +138,6 @@ struct IndentT: public IndentBase
     ~IndentT() {width -= i;}
 };
 
-typedef IndentT<1> Indent;
-
 class IndentStorer
 {
 public:
@@ -273,6 +271,20 @@ inline void assertion_failed_msg(char const * expr, char const * msg, char const
 
 } // namespace detail
 
+inline std::time_t time()
+{
+    std::time_t ret;
+    ISAAC_VERIFY_MSG(-1 != ::std::time(&ret), "std::time failed, errno: " << errno << strerror(errno));
+    return ret;
+}
+
+} // namespace common
+
+//isaac namespace IsaacDebugTraceIndent gets shadowed by non-incrementing type inside the first trace. This way the indent is
+//consistent within the function
+typedef isaac::common::detail::IndentT<1> IsaacDebugTraceIndent;
+
+
 /**
  ** \brief Provide a mechanism for detailed level of debugging
  **/
@@ -283,7 +295,7 @@ inline void assertion_failed_msg(char const * expr, char const * msg, char const
 #else
     #define ISAAC_THREAD_CERR_DEV_TRACE(blah)
     #ifdef ISAAC_THREAD_CERR_DEV_TRACE_ENABLED_CLUSTER_ID
-        #define ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID_INDENTING(clusterId, trace, line) typedef isaac::common::detail::Indent Indent; const Indent indent ## line; isaac::common::detail::IndentStorer indentStorer ## line(indent ## line); if(ISAAC_THREAD_CERR_DEV_TRACE_ENABLED_CLUSTER_ID == (clusterId)) { ISAAC_THREAD_CERR << indentStorer ## line << trace << std::endl; }
+        #define ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID_INDENTING(clusterId, trace, line) const IsaacDebugTraceIndent indent ## line; typedef isaac::common::detail::IndentBase IsaacDebugTraceIndent; isaac::common::detail::IndentStorer indentStorer ## line(indent ## line); if(ISAAC_THREAD_CERR_DEV_TRACE_ENABLED_CLUSTER_ID == (clusterId)) { ISAAC_THREAD_CERR << indentStorer ## line << trace << std::endl; }
         #define ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID_PROXY(clusterId, trace, line) ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID_INDENTING(clusterId, trace, line)
         #define ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(clusterId, trace) ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID_PROXY(clusterId, trace, __LINE__)
         #define ISAAC_DEV_TRACE_BLOCK(block) block
@@ -293,14 +305,8 @@ inline void assertion_failed_msg(char const * expr, char const * msg, char const
     #endif
 #endif
 
-inline std::time_t time()
-{
-    std::time_t ret;
-    ISAAC_VERIFY_MSG(-1 != ::std::time(&ret), "std::time failed, errno: " << errno << strerror(errno));
-    return ret;
-}
-
-} // namespace common
 } // namespace isaac
+
+
 
 #endif // #ifndef iSAAC_LOG_THREAD_TIMESTAMP_HH

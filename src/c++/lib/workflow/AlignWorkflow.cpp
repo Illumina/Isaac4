@@ -328,7 +328,7 @@ void AlignWorkflow::findMatches(
         baseQualityCutoff_,
         keepUnaligned_, clipSemialigned_, clipOverlapping_,
         scatterRepeats_, rescueShadows_, trimPEAdapters_, anchorMate_, gappedMismatchesMax_, smitWatermanGapsMax_, smartSmithWaterman_, smitWatermanGapSizeMax_, splitAlignments_,
-        alignmentCfg_.gapMatchScore_, alignmentCfg_.gapMismatchScore_, alignmentCfg_.gapOpenScore_, alignmentCfg_.gapExtendScore_, alignmentCfg_.minGapExtendScore_, alignmentCfg_.splitGapLength_,
+        alignmentCfg_,
         dodgyAlignmentScore_, anomalousPairHandicap_,
         qScoreBin_,
         fullBclQScoreTable_,

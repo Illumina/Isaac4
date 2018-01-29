@@ -57,7 +57,7 @@ class BgzfReader
     std::vector<char> compressedBlockBuffer_;
 
     z_stream strm_;
-    char zalbuffer[3][4*65535];
+    char zalbuffer[3][4*65535] = {{0}};
     unsigned zalbufferFree;
 
 public:

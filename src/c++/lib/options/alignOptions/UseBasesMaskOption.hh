@@ -43,7 +43,7 @@ ParsedUseBasesMask parseUseBasesMask (
 
 inline bool isWildcardUseBasesMask(const std::string &useBasesMask)
 {
-    return std::string::npos != useBasesMask.find('*', 0);
+    return "default" == useBasesMask || std::string::npos != useBasesMask.find('*', 0);
 }
 
 } // namespace options

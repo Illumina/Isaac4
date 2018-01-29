@@ -1,3 +1,37 @@
+Isaac-04.18.01.19
+* SAAC-1318 Update Redist to libxml2-2.9.6 and libxslt-1.1.31
+
+Isaac-04.18.01.18
+* SAAC-1324 Incorrect split read buffer estimation leads to bam generation out of memory failures
+
+Isaac-04.18.01.07
+* SAAC-1279 Running from Bam I/O does not overlap with compute
+
+Isaac-04.17.12.19
+* SAAC-1322 mergeUnmerged cleanup
+
+Isaac-04.17.12.05
+* SAAC-1319 Best match candidate collection to fail if the number of best equivalents exceeds repeatThreshold
+
+Isaac-04.17.10.04
+* SAAC-1312 readme phix example requires too much RAM
+* SAAC-1310 Isaac does not throw errors when dataset has variable read length where --variable-read-length is not set
+
+Isaac-04.17.10.03
+* SAAC-1280 Proper pair repeat mate MAPQ upgraded without shadow rescue attempt
+
+Isaac-04.17.09.25
+* SAAC-1306 Use second-best candidates for pair building
+
+Isaac-04.17.09.22
+* SAAC-1280 Proper pair repeat mate MAPQ upgraded without shadow rescue attempt
+
+Isaac-04.17.09.21
+* SAAC-1303 Use third-best seed candidates if there are no second-best seed candidates to improve scoring accuracy
+
+Isaac-04.17.09.20
+* SAAC-1304 Stop using normalized gap scores
+
 Isaac-04.17.09.06
 * SAAC-1302 When double-checking anomalous pair score the assumed orphan using both seed and rescued candidates
 * SAAC-1301 AS tag present in rescued shadow pairs confusing

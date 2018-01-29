@@ -127,7 +127,14 @@ public:
         // Drawbacks: overestimation will cause us to waste RAM. Underestimation will result in buffer reallocation during splitting
         // which might result in bam generation failure (or might succeed).
         // Each split produces two records
-        splitInfoList_.reserve((bin_.getTotalGapCount() * expectedCoverage + bin_.getTotalSplitCount()) * 2);
+        
+        // One caveat to the above: the deletions worthy of being split are counted as splits. 
+        // However there are many other splits that will not get realigned. So, overestimating again...
+        // Also, at this point we're could be counting coverage squared because all the possible
+        // splits might have already been detected on all the relevant reads. However the assumption is
+        // that in reality split deletions are harder to detect than regular ones.
+        
+        splitInfoList_.reserve(bin_.getTotalSplitCount() * expectedCoverage * 2);
 
         // summarize chunk sizes to get offsets
         if (!inputFileBuf_.open(bin_.getPathString().c_str(), std::ios_base::binary|std::ios_base::in))

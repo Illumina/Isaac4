@@ -444,30 +444,41 @@ InsertIt extractReadName(
 
 inline std::size_t formatReadName(
     const BamBlockHeader& block,
-    char *szBuffer, const unsigned nameLengthMax)
+    char *szBuffer,
+    const unsigned nameLengthMax,
+    const flowcell::ReadMetadata &readMetadata)
 {
     common::StaticVector<char, 1020> cigarBuffer;
 
     int pos = -1;
-    for (BamBlockHeader::TagIterator it = block.tagsBegin(); block.tagsEnd() != it; ++it)
+    if (readMetadata.getLength() != unsigned(block.getLSeq()))
     {
-        if (it->isTag("OC"))
-        {
-            std::copy(it->valueBegin(), it->valueEnd(), std::back_inserter(cigarBuffer));
-        }
-        else if (it->isTag("OP"))
-        {
-            // tag position is 1-based
-            pos = it->value.i - 1;
-        }
+        // if input bam was --use-bases-masked, just make the CIGAR up.
+        cigarBuffer.resize(100);
+        snprintf(&cigarBuffer.front(), cigarBuffer.size(), "%dM", readMetadata.getLength());
     }
-
-    if (cigarBuffer.empty() && block.getCigarLength())
+    else
     {
-        alignment::Cigar::toString(block.getCigar(), block.getCigar() + block.getCigarLength(), cigarBuffer);
-        cigarBuffer.push_back(0);
-    }
+        for (BamBlockHeader::TagIterator it = block.tagsBegin(); block.tagsEnd() != it; ++it)
+        {
+            if (it->isTag("OC"))
+            {
+                std::copy(it->valueBegin(), it->valueEnd(), std::back_inserter(cigarBuffer));
+            }
+            else if (it->isTag("OP"))
+            {
+                // tag position is 1-based
+                pos = it->value.i - 1;
+            }
+        }
 
+        if (cigarBuffer.empty() && block.getCigarLength())
+        {
+            alignment::Cigar::toString(block.getCigar(), block.getCigar() + block.getCigarLength(), cigarBuffer);
+            cigarBuffer.push_back(0);
+        }
+
+    }
     snprintf(
         szBuffer, nameLengthMax, "%c:%02d:%010d:%s",
         block.isUnmapped() ? 'u' : block.isReverse() ? 'r' : 'f',
@@ -483,7 +494,13 @@ inline std::size_t formatReadName(
  * \return it + nameLengthMax
  */
 template <typename InsertIt>
-InsertIt extractReadName(const BamBlockHeader &r1Block, const BamBlockHeader &r2Block, const unsigned nameLengthMax, InsertIt insertIt)
+InsertIt extractReadName(
+    const BamBlockHeader &r1Block,
+    const BamBlockHeader &r2Block,
+    const unsigned nameLengthMax,
+    const flowcell::ReadMetadata &r1Metadata,
+    const flowcell::ReadMetadata &r2Metadata,
+    InsertIt insertIt)
 {
 #ifdef ISAAC_DEV_STATS_ENABLED
     // ignore part of the name that follows the hash sign
@@ -494,12 +511,12 @@ InsertIt extractReadName(const BamBlockHeader &r1Block, const BamBlockHeader &r2
 
     if (len < nameLengthMax)
     {
-        len += formatReadName(r1Block, szBuffer + len, nameLengthMax - len);
+        len += formatReadName(r1Block, szBuffer + len, nameLengthMax - len, r1Metadata);
         if (len < nameLengthMax)
         {
             szBuffer[len] = '-';
             ++len;
-            len += formatReadName(r2Block, szBuffer + len, nameLengthMax - len);
+            len += formatReadName(r2Block, szBuffer + len, nameLengthMax - len, r2Metadata);
         }
     }
 
@@ -510,12 +527,16 @@ InsertIt extractReadName(const BamBlockHeader &r1Block, const BamBlockHeader &r2
 }
 
 template <typename InsertIt>
-InsertIt extractReadName(const BamBlockHeader &bamBlock, const unsigned nameLengthMax, InsertIt insertIt)
+InsertIt extractReadName(
+    const BamBlockHeader &bamBlock,
+    const unsigned nameLengthMax,
+    const flowcell::ReadMetadata &readMetadata,
+    InsertIt insertIt)
 {
 #ifdef ISAAC_DEV_STATS_ENABLED
     ISAAC_ASSERT_MSG(!bamBlock.isPaired(), "TODO: support pairing of unpaired pairs");
     char szBuffer[nameLengthMax];
-    const unsigned len = formatReadName(bamBlock, szBuffer, nameLengthMax);
+    const unsigned len = formatReadName(bamBlock, szBuffer, nameLengthMax, readMetadata);
     return extractReadName(szBuffer, std::min(nameLengthMax, len), nameLengthMax, insertIt);
 #else
     return extractReadName(bamBlock.nameBegin(), bamBlock.getReadNameLength(), nameLengthMax, insertIt);

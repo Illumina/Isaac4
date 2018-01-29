@@ -64,6 +64,8 @@ private:
     void parseQScoreBinValues();
     void parseBamExcludeTags();
     void processLegacyOptions(boost::program_options::variables_map &vm);
+    void parseHashTableBuckets();
+
 
 public:
     std::vector<std::string> argv;

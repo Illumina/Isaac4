@@ -605,7 +605,7 @@ public:
 
                 const flowcell::ReadMetadata &r2Metadata = readMetadataList.at(!r2Block.isReadOne());
                 clusterIt = extractBcl(r2Block, clusterIt, r2Metadata);
-                clusterIt = extractReadName(r1Block, r2Block, nameLengthMax, clusterIt);
+                clusterIt = extractReadName(r1Block, r2Block, nameLengthMax, r1Metadata, r2Metadata, clusterIt);
                 it->markExtracted();
                 const bool pf = r1Block.isPf() && r2Block.isPf(); //although pf should be set the same for both reads, some datasets have it differently.
                 *pfIt++ = pf;

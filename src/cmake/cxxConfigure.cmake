@@ -127,7 +127,7 @@ if((NOT HAVE_LIBXML2) OR (NOT HAVE_LIBXSLT) OR (NOT HAVE_LIBEXSLT))
 
   if((NOT LIBXML2_FOUND) OR (NOT LIBXSLT_FOUND) OR (NOT LIBEXSLT_FOUND))
     redist_package(LIBXML2 ${iSAAC_LIBXML2_VERSION} 
-                   "--prefix=${REINSTDIR};--without-modules;--without-http;--without-ftp;--without-python;--without-threads;--without-schematron;--without-debug;--without-iconv")
+                   "--prefix=${REINSTDIR};--without-modules;--without-http;--without-ftp;--without-python;--without-threads;--without-schematron;--without-debug;--without-iconv;--without-lzma")
     find_library_redist(LIBXML2 ${REINSTDIR} libxml/xpath.h xml2)
     redist_package(LIBXSLT ${iSAAC_LIBXSLT_VERSION} "--prefix=${REINSTDIR};--with-libxml-prefix=${REINSTDIR};--without-plugins;--without-crypto")
     find_library_redist(LIBEXSLT ${REINSTDIR} libexslt/exslt.h exslt)

@@ -39,11 +39,11 @@ GappedAligner::GappedAligner(
     : AlignerBase(collectMismatchCycles, alignmentCfg)
     , smartSmithWaterman_(smartSmithWaterman)
     , smithWatermanGapSizeMax_(smithWatermanGapSizeMax)
-    , bandedSmithWaterman16_(alignmentCfg.gapMatchScore_, alignmentCfg.gapMismatchScore_, -alignmentCfg.gapOpenScore_, -alignmentCfg.gapExtendScore_,
+    , bandedSmithWaterman16_(alignmentCfg.matchScore_, alignmentCfg.mismatchScore_, -alignmentCfg.gapOpenScore_, -alignmentCfg.gapExtendScore_,
                            flowcell::getMaxTotalReadLength(flowcellLayoutList))
-    , bandedSmithWaterman32_(alignmentCfg.gapMatchScore_, alignmentCfg.gapMismatchScore_, -alignmentCfg.gapOpenScore_, -alignmentCfg.gapExtendScore_,
+    , bandedSmithWaterman32_(alignmentCfg.matchScore_, alignmentCfg.mismatchScore_, -alignmentCfg.gapOpenScore_, -alignmentCfg.gapExtendScore_,
                        flowcell::getMaxTotalReadLength(flowcellLayoutList))
-    , bandedSmithWaterman64_(alignmentCfg.gapMatchScore_, alignmentCfg.gapMismatchScore_, -alignmentCfg.gapOpenScore_, -alignmentCfg.gapExtendScore_,
+    , bandedSmithWaterman64_(alignmentCfg.matchScore_, alignmentCfg.mismatchScore_, -alignmentCfg.gapOpenScore_, -alignmentCfg.gapExtendScore_,
                        flowcell::getMaxTotalReadLength(flowcellLayoutList))
     , hashedQueryTile_(2, -1U)
     , hashedQueryCluster_(2, -1U)

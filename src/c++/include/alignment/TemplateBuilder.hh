@@ -192,6 +192,7 @@ private:
         const Cluster &cluster,
         const TemplateLengthStatistics &templateLengthStatistics,
         const MatchFinderT &matchFinder,
+        const unsigned orphanIndex,
         FragmentMetadataLists &fragments,
         BamTemplate &bamTemplate) const;
 
@@ -336,20 +337,6 @@ private:
 
     template <typename MatchFinderT>
     bool rescueMate(
-        const reference::ContigList& contigList,
-        const bool sameContigOnly,
-        const RestOfGenomeCorrection &rog,
-        const flowcell::ReadMetadataList& readMetadataList,
-        templateBuilder::FragmentSequencingAdapterClipper &adapterClipper,
-        const MatchFinderT &matchFinder,
-        const unsigned orphanIndex,
-        const TemplateLengthStatistics& templateLengthStatistics,
-        FragmentMetadataList& orphanCandidates,
-        FragmentMetadataList& shadowList,
-        BamTemplate &bamTemplate) const;
-
-    template <typename MatchFinderT>
-    bool rescueShadowTemplate(
         const reference::ContigList& contigList,
         const bool sameContigOnly,
         const RestOfGenomeCorrection &rog,
@@ -696,10 +683,10 @@ templateBuilder::AlignmentType TemplateBuilder::rescueSingletonShadow(
     const Cluster &cluster,
     const TemplateLengthStatistics &templateLengthStatistics,
     const MatchFinderT &matchFinder,
+    const unsigned orphanIndex,
     FragmentMetadataLists &fragments,
     BamTemplate &bamTemplate) const
 {
-    const unsigned orphanIndex = fragments[0].empty();
     const FragmentMetadata &orphan = bamTemplate.getFragmentMetadata(orphanIndex);
 
     if (orphan.decoyAlignment)
@@ -709,9 +696,10 @@ templateBuilder::AlignmentType TemplateBuilder::rescueSingletonShadow(
     else if (orphan.isUniquelyAligned() && !dodgySingleton(orphan))
     {
         ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(cluster.getId(), "Unique orphan: " << orphan << " Rescuing shadow...");
-        rescueShadowTemplate(
+        rescueMate(
             contigList, true, rog, readMetadataList, adapterClipper, matchFinder,
             orphanIndex, templateLengthStatistics, fragments[orphanIndex], shadowList_[!orphanIndex], bamTemplate);
+        ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(bamTemplate.getCluster().getId(),"rescueSingletonShadow: rescued: " << bamTemplate);
         // regardless of success return Normal as in worst case we have singleton/shadow template
     }
 
@@ -921,37 +909,11 @@ bool TemplateBuilder::rescueMate(
         ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(orphan.getCluster().getId(),"rescueMate: rescued: " << bamTemplate);
 
         bamTemplate = BamTemplate(orphan, shadow, bamTemplate.isProperPair());
-        return true;
-    }
-    return false;
-}
-
-template <typename MatchFinderT>
-bool TemplateBuilder::rescueShadowTemplate(
-    const reference::ContigList& contigList,
-    const bool sameContigOnly,
-    const RestOfGenomeCorrection &rog,
-    const flowcell::ReadMetadataList& readMetadataList,
-    templateBuilder::FragmentSequencingAdapterClipper& adapterClipper,
-    const MatchFinderT &matchFinder,
-    const unsigned orphanIndex,
-    const TemplateLengthStatistics& tls,
-    FragmentMetadataList& orphanCandidates,
-    FragmentMetadataList& shadowList,
-    BamTemplate &bamTemplate) const
-{
-    if (rescueMate(
-        contigList, sameContigOnly, rog, readMetadataList, adapterClipper,
-        matchFinder, orphanIndex, tls, orphanCandidates, shadowList, bamTemplate))
-    {
         scoreRescuedShadowTemplate(rog, orphanIndex, bamTemplate, bestRescuedPair_);
-
-        ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(bamTemplate.getCluster().getId(),"rescueShadowTemplate: rescued: " << bamTemplate);
         return true;
     }
     return false;
 }
-
 
 template <typename MatchFinderT>
 bool TemplateBuilder::rescueShadows(
@@ -980,7 +942,7 @@ bool TemplateBuilder::rescueShadows(
         if (smitWatermanGapsMax_ && //BandedSmithWaterman::mismatchesCutoff < bestShadow.mismatchCount)
             (
                 // Best candidate has enough mismatches to open a gap.
-                topShadow.mismatchCount * alignmentCfg_.normalizedMismatchScore_ >= alignmentCfg_.normalizedGapOpenScore_
+                int(topShadow.mismatchCount) * (alignmentCfg_.mismatchScore_ - alignmentCfg_.matchScore_) <= alignmentCfg_.gapOpenScore_ - alignmentCfg_.matchScore_
 //                ||
 //                // if we have something that amounts to a long gap, do smith waterman anyway
 //                bestShadow.smithWatermanScore >= alignmentCfg_.normalizedMaxGapExtendScore_
@@ -1177,9 +1139,10 @@ templateBuilder::AlignmentType TemplateBuilder::buildTemplate(
 
             if (candidates_[0].empty() || candidates_[1].empty())
             {
+                const unsigned orphanIndex = candidates_[0].empty();
                 res = rescueSingletonShadow(
                     contigList, rog, readMetadataList, adapterClipper, cluster, templateLengthStatistics,
-                    matchFinder, candidates_, bamTemplate);
+                    matchFinder, orphanIndex, candidates_, bamTemplate);
             }
             else
             {
@@ -1200,7 +1163,15 @@ templateBuilder::AlignmentType TemplateBuilder::buildTemplate(
                                 templateLengthStatistics,
                                 matchFinder, candidates_, bamTemplate);
                         }
-                        //else proper pairs will upgrade repeat mate MAPQ if the pair is unique
+                        else
+                        {
+                            ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(cluster.getId(), "Pair with low-scored mate. Checking that pair is unique within rescue range: " << bamTemplate);
+                            // still need to check if mate is unique within rescue region
+                            const unsigned orphanIndex = !bamTemplate.getFragmentMetadata(0).isUniquelyAligned();
+                            res = rescueSingletonShadow(
+                                contigList, rog, readMetadataList, adapterClipper, cluster, templateLengthStatistics,
+                                matchFinder, orphanIndex, candidates_, bamTemplate);
+                        }
                     }
                     else if (1 == r0Fragment.repeatCount && 1 == r1Fragment.repeatCount)
                     {

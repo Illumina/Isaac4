@@ -238,12 +238,7 @@ FindHashMatchesTransition::FindHashMatchesTransition(
     const bool smartSmithWaterman,
     const unsigned smithWatermanGapSizeMax,
     const bool splitAlignments,
-    const int gapMatchScore,
-    const int gapMismatchScore,
-    const int gapOpenScore,
-    const int gapExtendScore,
-    const int minGapExtendScore,
-    const unsigned splitGapLength,
+    const alignment::AlignmentCfg &alignmentCfg,
     const alignment::TemplateBuilder::DodgyAlignmentScore dodgyAlignmentScore,
     const unsigned anomalousPairHandicap,
     const bool qScoreBin,
@@ -298,7 +293,7 @@ FindHashMatchesTransition::FindHashMatchesTransition(
     , ioOverlapThreads_(2)
     , contigLists_(contigLists)
 
-    , alignmentCfg_(gapMatchScore, gapMismatchScore, gapOpenScore, gapExtendScore, minGapExtendScore, splitGapLength)
+    , alignmentCfg_(alignmentCfg)
     , matchSelector_(
         coresMax_,
         barcodeMetadataList_,
@@ -687,7 +682,7 @@ void FindHashMatchesTransition::alignFlowcells(
         {
             case flowcell::Layout::Bam:
             {
-                BamBaseCallsSource dataSource(
+                BackgroundBamBaseCallsSource dataSource(
                     tempDirectory_,
                     availableMemory_,
                     clustersAtATimeMax_,

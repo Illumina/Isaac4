@@ -649,7 +649,6 @@ bool Build::handleBinAllocationFailure(
 }
 
 boost::shared_ptr<BinData> Build::allocateBin(
-    const std::size_t maxDataSize,
     boost::unique_lock<boost::mutex> &lock,
     alignment::BinMetadataCRefList::iterator &thisThreadBinsEndIt,
     alignment::BinMetadataCRefList::iterator &nextUnprocessedBinIt,
@@ -667,11 +666,12 @@ boost::shared_ptr<BinData> Build::allocateBin(
     while (++thisThreadBinsEndIt != binsEnd &&
         thisThreadBinIt->get().sameContig(*thisThreadBinsEndIt) &&
         thisThreadBinIt->get().samePath(*thisThreadBinsEndIt) &&
-        maxDataSize > bin.getDataSize() + thisThreadBinsEndIt->get().getDataSize())
+        targetBinSize_ > bin.getDataSize() + thisThreadBinsEndIt->get().getDataSize())
     {
         bin.merge(*thisThreadBinsEndIt);
     }
-    ISAAC_THREAD_CERR << "MERGED targetBinSize_:" << targetBinSize_ << " " << bin << std::endl;
+    ISAAC_THREAD_CERR << "MERGED targetBinSize_:" << targetBinSize_ << " " << bin <<
+        " " << bin.getTotalSplitCount() << std::endl;
 
     // now next thread can start taking another chunk of bins
     nextUnprocessedBinIt = thisThreadBinsEndIt;
@@ -995,8 +995,7 @@ void Build::sortBinParallel(alignment::BinMetadataCRefList::iterator &nextUnproc
 
         // wait and allocate memory required for loading and compressing this bin
         boost::shared_ptr<BinData> binDataPtr =
-            allocateBin(targetBinSize_,
-                        lock, thisThreadBinsEndIt, nextUnprocessedBinIt, nextUnallocatedBinIt, binRefs_.end(), mallocBlock, threadNumber);
+            allocateBin(lock, thisThreadBinsEndIt, nextUnprocessedBinIt, nextUnallocatedBinIt, binRefs_.end(), mallocBlock, threadNumber);
         waitForLoadSlot(lock, thisThreadBinIt, thisThreadBinsEndIt, nextUnloadedBinIt);
         ISAAC_BLOCK_WITH_CLENAUP(boost::bind(&Build::returnLoadSlot, this, _1))
         {

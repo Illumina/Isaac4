@@ -31,6 +31,6 @@ endif (CMAKE_SYSTEM_PROCESSOR MATCHES "^x86_64$")
 
 set (iSAAC_CXX_OPTIMIZATION_FLAGS "${iSAAC_VECTORIZATION} -O2 -ftree-vectorize -finline-functions -fpredictive-commoning -fgcse-after-reload -funswitch-loops -ftree-slp-vectorize -fvect-cost-model -fipa-cp-clone -ftree-phiprop")
 # -std=gnu++0x must be used to ensure cygwin builds succeed
-set (CMAKE_CXX_FLAGS "$ENV{CXX_FLAGS} $ENV{CXXFLAGS} -std=gnu++0x -fpermissive -fopenmp -Wall -Wextra -Wunused -Wno-long-long -Wsign-compare -Wpointer-arith -DBOOST_SYSTEM_API_CONFIG_HPP -DBOOST_POSIX_API " CACHE STRING "g++ flags" FORCE)
+set (CMAKE_CXX_FLAGS "$ENV{CXX_FLAGS} $ENV{CXXFLAGS} -std=gnu++0x -fpermissive -fopenmp -Wall -Wextra -Wunused -Wno-long-long -Wsign-compare -Wpointer-arith -Wno-unused-local-typedefs -Wno-deprecated-declarations -DBOOST_SYSTEM_API_CONFIG_HPP -DBOOST_POSIX_API " CACHE STRING "g++ flags" FORCE)
 # -03 causes loop unrolling that prevent autovectorization of some parts of BandedSmithWaterman
 

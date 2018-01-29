@@ -155,6 +155,7 @@ BamBaseCallsSource::BamBaseCallsSource(
     const flowcell::Layout &bamFlowcellLayout,
     common::ThreadVector &threads) :
         bamFlowcellLayout_(bamFlowcellLayout),
+        bamPath_(bamFlowcellLayout_.getAttribute<flowcell::Layout::Bam, flowcell::BamFilePathAttributeTag>()),
         tileClustersMax_(clustersAtATimeMax),
         coresMax_(coresMax),
         clusterLength_(flowcell::getTotalReadLength(bamFlowcellLayout_.getReadMetadataList()) + bamFlowcellLayout_.getBarcodeLength() + bamFlowcellLayout_.getReadNameLength()),
@@ -173,23 +174,33 @@ BamBaseCallsSource::BamBaseCallsSource(
 flowcell::TileMetadataList BamBaseCallsSource::discoverTiles()
 {
     flowcell::TileMetadataList ret;
+    discoverTiles(ret);
+    return ret;
+}
 
+unsigned BamBaseCallsSource::loadNextTile()
+{
     const unsigned clustersToLoad = tileClustersMax_;
-//    const unsigned clustersToLoad = clustersAtATimeMax_;
+    //    const unsigned clustersToLoad = clustersAtATimeMax_;
     clusters_.reset(clusterLength_, clustersToLoad);
     // load clusters, return tile breakdown based on tileClustersMax_
-
-    const boost::filesystem::path bamPath = bamFlowcellLayout_.getAttribute<flowcell::Layout::Bam, flowcell::BamFilePathAttributeTag>();
     // this will keep the current files open if the paths don't change
-    bamClusterLoader_.open(bamFlowcellLayout_.getFlowcellId(), bamPath);
-
+    bamClusterLoader_.open(bamFlowcellLayout_.getFlowcellId(), bamPath_);
     alignment::BclClusters::iterator clustersEnd = clusters_.cluster(0);
     clusters_.pf().clear();
     std::back_insert_iterator<std::vector<bool> > pfIt(clusters_.pf());
-    const unsigned clustersLoaded = bamClusterLoader_.loadClusters(
-        clustersToLoad, bamFlowcellLayout_.getReadNameLength(), bamFlowcellLayout_.getReadMetadataList(), clustersEnd, pfIt);
-    ISAAC_THREAD_CERR << "Loaded  " << clustersLoaded << " clusters of length " << clusterLength_ << std::endl;
+    const unsigned clustersLoaded = bamClusterLoader_.loadClusters(clustersToLoad,
+        bamFlowcellLayout_.getReadNameLength(), bamFlowcellLayout_.getReadMetadataList(), clustersEnd, pfIt);
+    ISAAC_THREAD_CERR<< "Loaded  " << clustersLoaded << " clusters of length " << clusterLength_ << std::endl;
     clusters_.reset(clusterLength_, clustersLoaded);
+    return clustersLoaded;
+}
+
+void BamBaseCallsSource::discoverTiles(flowcell::TileMetadataList &ret)
+{
+    ret.clear();
+
+    const unsigned clustersLoaded = loadNextTile();
     if (clustersLoaded)
     {
         const std::string &flowcellId = bamFlowcellLayout_.getFlowcellId();
@@ -207,8 +218,6 @@ flowcell::TileMetadataList BamBaseCallsSource::discoverTiles()
                                flowcell::getTotalReadLength(bamFlowcellLayout_.getReadMetadataList()) * (tileMetadata.getClusterCount() - 1),
                                flowcell::getTotalReadLength(bamFlowcellLayout_.getReadMetadataList())) << " " << tileMetadata << std::endl;
     }
-
-    return ret;
 }
 
 void BamBaseCallsSource::loadClusters(
@@ -219,6 +228,106 @@ void BamBaseCallsSource::loadClusters(
 
     bclData.swap(clusters_);
 }
+
+
+void BackgroundBamBaseCallsSource::loadTilesThread()
+{
+    ISAAC_THREAD_CERR<< "BackgroundBamBaseCallsSource load thread started" << std::endl;
+    std::unique_lock<std::mutex> lock(stateMutex_);
+    while (!terminateRequested_)
+    {
+        unsigned loadedClustersCount = 0;
+        ISAAC_THREAD_CERR << "BackgroundBamBaseCallsSource::loadTilesThread 1" << std::endl;
+        try
+        {
+            // make sure client thread can pick up previous tile while we're loading this one
+            common::unlock_guard<std::unique_lock<std::mutex> > unlock(lock);
+            loadedClustersCount = loadNextTile();
+        }
+        catch (...)
+        {
+            forceTermination_ = true;
+            throw;
+        }
+
+        ISAAC_ASSERT_MSG(!loadedTile_, "Expected client to be ready for next tile");
+        ISAAC_THREAD_CERR << "BackgroundBamBaseCallsSource::loadTilesThread 2" << std::endl;
+
+        if (loadedClustersCount)
+        {
+            loadedTile_ = ++loadingTile_;
+            loadedClustersCount_ = loadedClustersCount;
+            ISAAC_THREAD_CERR << "BackgroundBamBaseCallsSource::loadTilesThread 4" << std::endl;
+            stateChangeEvent_.notify_all();
+
+            while (loadedTile_ && !terminateRequested_)
+            {
+                // last loaded tile has not been picked up
+                stateChangeEvent_.wait(lock);
+            }
+        }
+        else
+        {
+            loadedTile_ = 0;
+            loadedClustersCount_ = 0;
+            noMoreData_ = true;
+            ISAAC_THREAD_CERR << "BackgroundBamBaseCallsSource::loadTilesThread 5" << std::endl;
+            stateChangeEvent_.notify_all();
+            break;
+        }
+    }
+    ISAAC_THREAD_CERR<< "BackgroundBamBaseCallsSource load thread terminated" << std::endl;
+}
+
+
+flowcell::TileMetadataList BackgroundBamBaseCallsSource::discoverTiles()
+{
+    ISAAC_THREAD_CERR << "BackgroundBamBaseCallsSource::discoverTiles" << std::endl;
+    std::unique_lock<std::mutex> lock(stateMutex_);
+
+    while (!loadedTile_ && !noMoreData_)
+    {
+        if (forceTermination_)
+        {
+            BOOST_THROW_EXCEPTION(common::ThreadingException("Terminating due to failures on other threads"));
+        }
+        stateChangeEvent_.wait(lock);
+    }
+    flowcell::TileMetadataList ret;
+    if (loadedTile_)
+    {
+        ret.push_back(flowcell::TileMetadata(
+            bamFlowcellLayout_.getFlowcellId(), bamFlowcellLayout_.getIndex(), loadedTile_,
+            1, loadedClustersCount_, 0));
+    }
+    ISAAC_THREAD_CERR << "BackgroundBamBaseCallsSource::discoverTiles done" << std::endl;
+    return ret;
+}
+
+void BackgroundBamBaseCallsSource::loadClusters(
+    const flowcell::TileMetadata &tileMetadata,
+    alignment::BclClusters &bclData)
+{
+    ISAAC_THREAD_CERR << "BackgroundBamBaseCallsSource::loadClusters" << std::endl;
+
+    std::unique_lock<std::mutex> lock(stateMutex_);
+    if (forceTermination_)
+    {
+        BOOST_THROW_EXCEPTION(common::ThreadingException("Terminating due to failures on other threads"));
+    }
+
+    ISAAC_ASSERT_MSG(tileMetadata.getFlowcellIndex() == bamFlowcellLayout_.getIndex(), "Unexpected tile requested " << tileMetadata);
+    ISAAC_ASSERT_MSG(tileMetadata.getLane() == 1, "Unexpected tile lane requested: " << tileMetadata);
+    ISAAC_ASSERT_MSG(tileMetadata.getTile() == loadedTile_, "Unexpected tile tile requested: " << tileMetadata);
+
+    BamBaseCallsSource::loadClusters(tileMetadata, bclData);
+
+    loadedTile_ = 0;
+    stateChangeEvent_.notify_all();
+
+    ISAAC_THREAD_CERR << "BackgroundBamBaseCallsSource::loadClusters done" << std::endl;
+}
+
 
 } // namespace alignWorkflow
 } // namespace workflow

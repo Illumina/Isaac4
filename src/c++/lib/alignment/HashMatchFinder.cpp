@@ -166,7 +166,13 @@ inline bool iSAAC_PROFILING_NOINLINE mergeSeedHit(
 
 struct Unmerged
 {
-    ReferenceOffsetList::iterator current; const ReferenceOffsetList::iterator end; ReferenceOffsetList::iterator newEnd;
+    // cursor
+    ReferenceOffsetList::iterator current_;
+    // end of input
+    const ReferenceOffsetList::iterator end_;
+    // end of input once all the promoted have been removed and
+    // all the ones that stayed got moved up to fill the hole.
+    ReferenceOffsetList::iterator newEnd_;
 };
 
 
@@ -176,7 +182,7 @@ void mergeSeedHiT(
     Unmerged unmerged[],
     ReferenceOffsetLists& mergeBuffers)
 {
-    if (!mergeSeedHit(unmerged[maxSupportingSeeds - 1].current, unmerged[maxSupportingSeeds - 1].end, hit, unmerged[maxSupportingSeeds - 1].newEnd, mergeBuffers[maxSupportingSeeds]))
+    if (!mergeSeedHit(unmerged[maxSupportingSeeds - 1].current_, unmerged[maxSupportingSeeds - 1].end_, hit, unmerged[maxSupportingSeeds - 1].newEnd_, mergeBuffers[maxSupportingSeeds]))
     {
         mergeSeedHiT<maxSupportingSeeds - 1>(hit, unmerged, mergeBuffers);
     }
@@ -191,31 +197,39 @@ void mergeSeedHiT<1>(
     mergeBuffers[1].push_back(hit);
 }
 
-
-bool iSAAC_PROFILING_NOINLINE mergeUnmerged(Unmerged &unmerged, ReferenceOffsetList& mergeBuffer, ReferenceOffsetList& tmp)
+/**
+ * \brief merge two sorted sequences into one. The input sequences are in the same buffer
+ */
+bool iSAAC_PROFILING_NOINLINE mergeUnmerged(
+    Unmerged &unmerged, ReferenceOffsetList& mergeBuffer, ReferenceOffsetList& tmp)
 {
-    unmerged.newEnd = unmerged.current != unmerged.newEnd ? std::move(unmerged.current, unmerged.end, unmerged.newEnd) : unmerged.end;
+    unmerged.newEnd_ = unmerged.current_ != unmerged.newEnd_ ? std::move(unmerged.current_, unmerged.end_, unmerged.newEnd_) : unmerged.end_;
     //        mergeBuffers[i].erase(, mergeBuffers[i+1].end());
     tmp.clear();
-    std::merge(mergeBuffer.begin(), unmerged.newEnd, unmerged.end, mergeBuffer.end(), std::back_inserter(tmp));
+    std::merge(mergeBuffer.begin(), unmerged.newEnd_, unmerged.end_, mergeBuffer.end(), std::back_inserter(tmp));
     mergeBuffer.clear();
     mergeBuffer.insert(mergeBuffer.end(), tmp.begin(), tmp.end());
     tmp.clear();
     return !mergeBuffer.empty();
 }
 
+/**
+ * \return the highest count of seeds supporting a match
+ */
 template <unsigned maxSupportingSeeds> unsigned mergeUnmerged(
     Unmerged *unmerged,
-    ReferenceOffsetLists& mergeBuffers)
+    ReferenceOffsetLists& mergeBuffers,
+    ReferenceOffsetList& tmp)
 {
-    unsigned ret = mergeUnmerged(unmerged[maxSupportingSeeds], mergeBuffers[maxSupportingSeeds], mergeBuffers[0]) ? maxSupportingSeeds : 0;
-    unsigned next = mergeUnmerged<maxSupportingSeeds - 1>(unmerged, mergeBuffers);
+    unsigned ret = mergeUnmerged(unmerged[maxSupportingSeeds], mergeBuffers[maxSupportingSeeds], tmp) ? maxSupportingSeeds : 0;
+    unsigned next = mergeUnmerged<maxSupportingSeeds - 1>(unmerged, mergeBuffers, tmp);
     return ret ? ret : next;
 }
 
 template <> unsigned mergeUnmerged<0>(
     Unmerged *unmerged,
-    ReferenceOffsetLists& mergeBuffers)
+    ReferenceOffsetLists& mergeBuffers,
+    ReferenceOffsetList& tmp)
 {
     return 0;
 }
@@ -224,6 +238,14 @@ template <> unsigned mergeUnmerged<0>(
 template <unsigned maxSupportingSeeds>
 unsigned iSAAC_PROFILING_NOINLINE mergeSeedHits(ReferenceOffsetLists& mergeBuffers)
 {
+    ISAAC_ASSERT_MSG(false, "Implementation must be explicity specialized");
+    return -1U;
+}
+
+template <>
+unsigned iSAAC_PROFILING_NOINLINE mergeSeedHits<4>(ReferenceOffsetLists& mergeBuffers)
+{
+    static const unsigned maxSupportingSeeds = 4;
     const ReferenceOffsetList& seedHits = mergeBuffers[0];
     if (seedHits.empty())
     {
@@ -250,7 +272,10 @@ unsigned iSAAC_PROFILING_NOINLINE mergeSeedHits(ReferenceOffsetLists& mergeBuffe
         mergeSeedHiT<maxSupportingSeeds>(hit, unmerged, mergeBuffers);
     }
 
-    return mergeUnmerged<maxSupportingSeeds>(unmerged, mergeBuffers);
+    // done using input, clear buffer and pass it as tmp for mergeUnmerged
+    mergeBuffers[0].clear();
+    //WARNING! after mergeUnmerged the unmerged is not pointing correctly.
+    return mergeUnmerged<maxSupportingSeeds>(unmerged, mergeBuffers, mergeBuffers[0]);
 
 //    const bool have4 = mergeUnmerged(unmerged[4], mergeBuffers[4], mergeBuffers[0]);
 //    const bool have3 = mergeUnmerged(unmerged[3], mergeBuffers[3], mergeBuffers[0]);
@@ -304,7 +329,9 @@ void iSAAC_PROFILING_NOINLINE ClusterHashMatchFinder<ReferenceHash, seedsPerMatc
             contigList, seedHits.seedOffset_, readMetadata, filterContigId, seedHits.reverseMatches_, rvMergeBuffers[0]);
         topSeeds = std::max(topSeeds, mergeSeedHits<seedsPerMatchMax>(rvMergeBuffers));
 
-        if (!detectStructuralVariant && LONG_READ_SEEDS_MIN <= topSeeds && (fwMergeBuffers[topSeeds].size() + rvMergeBuffers[topSeeds].size() +
+        if (!detectStructuralVariant && LONG_READ_SEEDS_MIN <= topSeeds &&
+            (fwMergeBuffers[topSeeds - 1].size() + rvMergeBuffers[topSeeds - 1].size()) &&
+            (fwMergeBuffers[topSeeds].size() + rvMergeBuffers[topSeeds].size() +
             fwMergeBuffers[topSeeds - 1].size() + rvMergeBuffers[topSeeds - 1].size()) < candidateMatchesMax_)
         {
             break;
@@ -316,6 +343,7 @@ void iSAAC_PROFILING_NOINLINE ClusterHashMatchFinder<ReferenceHash, seedsPerMatc
         }
     }
 
+    ISAAC_ASSERT_MSG(matchLists.size() > topSeeds, "Incorrectly allocated buffer. Expected: " << (topSeeds + 1) << "Got:" << matchLists.size());
     ISAAC_ASSERT_MSG(!seedsHits.empty(), "Unexpected empty seedsHits. Caller should ensure the input makes sense.");
     const unsigned minSeeds = std::min<unsigned>(seedsHits.size(), detectStructuralVariant ? SV_READ_SEEDS_MIN : SHORT_READ_SEEDS_MIN);
 
@@ -323,16 +351,41 @@ void iSAAC_PROFILING_NOINLINE ClusterHashMatchFinder<ReferenceHash, seedsPerMatc
     {
         const unsigned bestCandidateMatches = fwMergeBuffers[topSeeds].size() + rvMergeBuffers[topSeeds].size();
         const unsigned secondBestCandidateMatches = fwMergeBuffers[topSeeds - 1].size() + rvMergeBuffers[topSeeds - 1].size();
-        ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(cluster.getId(), "buildMatchesIteratively bestCandidateMatches: " << bestCandidateMatches << " secondBestCandidateMatches:" << secondBestCandidateMatches);
+        ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(cluster.getId(), "buildMatchesIteratively bestCandidateMatches: " << bestCandidateMatches);
         if ((bestCandidateMatches + secondBestCandidateMatches) < candidateMatchesMax_)
         {
-            ISAAC_ASSERT_MSG(matchLists.size() > topSeeds, "Incorrectly allocated buffer. Expected: " << (topSeeds + 1) << "Got:" << matchLists.size());
+            ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(cluster.getId(), "buildMatchesIteratively secondBestCandidateMatches:" << secondBestCandidateMatches);
             offsetsToMatches<false>(fwMergeBuffers[topSeeds], matchLists[topSeeds]);
             offsetsToMatches<true>(rvMergeBuffers[topSeeds], matchLists[topSeeds]);
-//            if (!detectStructuralVariant)
+//              if (!detectStructuralVariant)
             {
                 offsetsToMatches<false>(fwMergeBuffers[topSeeds - 1], matchLists[topSeeds - 1]);
                 offsetsToMatches<true>(rvMergeBuffers[topSeeds - 1], matchLists[topSeeds - 1]);
+            }
+
+            if (2 < topSeeds && !secondBestCandidateMatches)
+            {
+                const unsigned thirdBestCandidateMatches = fwMergeBuffers[topSeeds - 2].size() + rvMergeBuffers[topSeeds - 2].size();
+                if (bestCandidateMatches + thirdBestCandidateMatches < candidateMatchesMax_)
+                {
+                    ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(cluster.getId(), "buildMatchesIteratively thirdBestCandidateMatches:" << thirdBestCandidateMatches);
+
+                    offsetsToMatches<false>(fwMergeBuffers[topSeeds - 2], matchLists[topSeeds - 2]);
+                    offsetsToMatches<true>(rvMergeBuffers[topSeeds - 2], matchLists[topSeeds - 2]);
+
+                    //This gives marginal improvement on scoring quality in simulations without any extra coverage.
+                    //In fact the mapq 20+ coverage is reduced by a tiny bit due to higher accruacy scoring
+//                    if (3 < topSeeds && !thirdBestCandidateMatches)
+//                    {
+//                        const unsigned fourthBestCandidateMatches = fwMergeBuffers[topSeeds - 3].size() + rvMergeBuffers[topSeeds - 3].size();
+//                        ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(cluster.getId(), "buildMatchesIteratively fourthBestCandidateMatches:" << fourthBestCandidateMatches);
+//                        if (bestCandidateMatches + fourthBestCandidateMatches < candidateMatchesMax_)
+//                        {
+//                            offsetsToMatches<false>(fwMergeBuffers[topSeeds - 3], matchLists[topSeeds - 3]);
+//                            offsetsToMatches<true>(rvMergeBuffers[topSeeds - 3], matchLists[topSeeds - 3]);
+//                        }
+//                    }
+                }
             }
         }
     }

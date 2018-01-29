@@ -59,7 +59,7 @@ public:
             if ((readMetadata.getNumber()) % 2 == block.isReadOne())
             {
                 clustersIt = bam::extractBcl(block, clustersIt, readMetadata);
-                clustersIt = bam::extractReadName(block, nameLengthMax, clustersIt);
+                clustersIt = bam::extractReadName(block, nameLengthMax, readMetadata, clustersIt);
                 const bool pf = block.isPf(); //gcc 4.4 has trouble figuring out which assignment implementation to use
                 *pfIt++ = pf;
                 return --clusterCount;

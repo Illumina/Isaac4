@@ -116,7 +116,7 @@ void TestHashMatchFinder::testEverything()
         isaac::flowcell::ReadMetadataList readMetadataList(1, isaac::flowcell::ReadMetadata(1, sequence.length() + 1, 0, 0));
         TestMatchStorage matchLists = findMatches(reference, sequence, readMetadataList);
 
-        CPPUNIT_ASSERT_EQUAL(1UL, matchLists.at(3).size());
+        CPPUNIT_ASSERT_EQUAL(1UL, matchLists.at(4).size());
     }
 
     {
@@ -126,7 +126,7 @@ void TestHashMatchFinder::testEverything()
         isaac::flowcell::ReadMetadataList readMetadataList(1, isaac::flowcell::ReadMetadata(1, sequence.length() + 1, 0, 0));
         TestMatchStorage matchLists = findMatches(reference, sequence, readMetadataList);
 
-        CPPUNIT_ASSERT_EQUAL(1UL, matchLists.at(3).size());
+        CPPUNIT_ASSERT_EQUAL(1UL, matchLists.at(4).size());
     }
 
     {
@@ -136,7 +136,7 @@ void TestHashMatchFinder::testEverything()
         isaac::flowcell::ReadMetadataList readMetadataList(1, isaac::flowcell::ReadMetadata(1, sequence.length() + 1, 0, 0));
         TestMatchStorage matchLists = findMatches(reference, sequence, readMetadataList);
 
-        CPPUNIT_ASSERT_EQUAL(1UL, matchLists.at(3).size());
+        CPPUNIT_ASSERT_EQUAL(1UL, matchLists.at(4).size());
     }
 
     {
@@ -146,9 +146,9 @@ void TestHashMatchFinder::testEverything()
         TestMatchStorage matchLists = findMatches(reference, sequence, readMetadataList);
 
         CPPUNIT_ASSERT_EQUAL(0UL, matchLists.at(1).size());
-        CPPUNIT_ASSERT_EQUAL(1UL, matchLists.at(3).size());
-        CPPUNIT_ASSERT_EQUAL(1000U, matchLists.at(3).at(0).contigListOffset_);
-        CPPUNIT_ASSERT_EQUAL(false, matchLists.at(3).at(0).reverse_);
+        CPPUNIT_ASSERT_EQUAL(1UL, matchLists.at(4).size());
+        CPPUNIT_ASSERT_EQUAL(1000U, matchLists.at(4).at(0).contigListOffset_);
+        CPPUNIT_ASSERT_EQUAL(false, matchLists.at(4).at(0).reverse_);
     }
 
 //    current iterative match finder will not stop until it finds 3 seeds support. 16 bases is not enough
@@ -175,9 +175,9 @@ void TestHashMatchFinder::testEverything()
         TestMatchStorage matchLists = findMatches(reference, sequence, readMetadataList);
 
         CPPUNIT_ASSERT_EQUAL(0UL, matchLists.at(1).size());
-        CPPUNIT_ASSERT_EQUAL(1UL, matchLists.at(3).size());
-        CPPUNIT_ASSERT_EQUAL(1000U, matchLists.at(3).at(0).contigListOffset_);
-        CPPUNIT_ASSERT_EQUAL(true, matchLists.at(3).at(0).reverse_);
+        CPPUNIT_ASSERT_EQUAL(1UL, matchLists.at(4).size());
+        CPPUNIT_ASSERT_EQUAL(1000U, matchLists.at(4).at(0).contigListOffset_);
+        CPPUNIT_ASSERT_EQUAL(true, matchLists.at(4).at(0).reverse_);
     }
 // SeedMetadataList is not used anymore.
 //    {

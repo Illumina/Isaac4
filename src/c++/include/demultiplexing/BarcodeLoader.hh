@@ -164,8 +164,8 @@ public:
             Barcodes::iterator destinationBegin = nextTileBarcodes;
             nextTileBarcodes += currentTile->getClusterCount();
 
-            const Barcodes::const_iterator  destinationEnd = nextTileBarcodes;
-            ISAAC_ASSERT_MSG(destinationEnd <= barcodes.end(), "Computed end is past the end of the reserved buffer");
+            //const Barcodes::const_iterator  destinationEnd = nextTileBarcodes;
+            ISAAC_ASSERT_MSG(nextTileBarcodes <= barcodes.end(), "Computed end is past the end of the reserved buffer");
 
             {
                 common::unlock_guard<boost::mutex> unlock(mutex_);
