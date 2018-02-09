@@ -1,3 +1,5 @@
+* SAAC-1326 Support for references over 4 gigabases
+
 Isaac-04.18.02.08
 * SAAC-1329 crash on reads over 256 bases long with default seed length
 
