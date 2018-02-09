@@ -1,3 +1,12 @@
+Isaac-04.18.02.08
+* SAAC-1329 crash on reads over 256 bases long with default seed length
+
+Isaac-04.18.02.02
+* SAAC-1328 incorrect split read counting in alignment leads to memory control failure in bam generation
+
+Isaac-04.18.02.01
+* SAAC-1327 TLEN in the bam changes on some reads unless --realign-gaps no is used.
+
 Isaac-04.18.01.19
 * SAAC-1318 Update Redist to libxml2-2.9.6 and libxslt-1.1.31
 

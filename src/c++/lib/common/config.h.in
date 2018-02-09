@@ -151,7 +151,7 @@
 #cmakedefine NAMESPACE @NAMESPACE@
 
 /* Define to the address where bug reports for this package should be sent. */
-/* #undef PACKAGE_BUGREPORT isaac_bug@illumina.com */
+#cmakedefine PACKAGE_BUGREPORT support@illumina.com
 
 /* Define to the full name of this package. */
 #cmakedefine PACKAGE_NAME @PACKAGE_NAME@
@@ -181,6 +181,8 @@
 
 /* Build type (useful for debugging) */
 #cmakedefine ISAAC_BUILD_TYPE ISAAC_BUILD_@ISAAC_BUILD_TYPE@
+
+#define ISAAC_READ_LENGTH_MAX @ISAAC_READ_LENGTH_MAX@
 
 /* Define to empty if `const' does not conform to ANSI C. */
 #undef const

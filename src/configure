@@ -47,6 +47,7 @@ Configuration:
                               is the number of nodes [1]
   --package-type=type         enables generation of deployment package target (make package)
                               Valid types are: rpm, deb, tgz and cygwin-binary
+  --read-length-max           Maximum supported read length
   --static                    forces library static linking
   --terse                     display less information (disables CMAKE_VERBOSE_MAKEFILE)
   --verbose                   display more information (enables CMAKE_VERBOSE_MAKEFILE)
@@ -243,6 +244,9 @@ for a in "$@"; do
         export CXXFLAGS="-DISAAC_TEMP_STORE_DISABLED ${CXXFLAGS}"
     elif echo $a | grep "^--with-gprof" > /dev/null 2> /dev/null; then
         export CXXFLAGS="-pg -fprofile-arcs ${CXXFLAGS}"
+    elif echo $a | grep "^--read-length-max" > /dev/null 2> /dev/null; then
+        isaac_read_length_max=`echo $a | sed "s/^--read-length-max=//"`
+        CMAKE_OPTIONS="$CMAKE_OPTIONS -DISAAC_READ_LENGTH_MAX=${isaac_read_length_max}"
     else
         echo "Unknown command line option: $a" >&2
         exit 2

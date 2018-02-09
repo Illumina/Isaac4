@@ -137,7 +137,7 @@ public:
 private:
     const std::size_t candidateMatchesMax_;
 
-    typedef common::StaticVector<SeedHits, 16> SeedsHits;
+    typedef common::StaticVector<SeedHits, (ISAAC_READ_LENGTH_MAX / SEED_LENGTH)> SeedsHits;
 
     template<bool filterContigs, bool detectStructuralVariant>
     void buildMatchesIteratively(

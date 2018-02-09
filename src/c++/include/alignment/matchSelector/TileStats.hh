@@ -60,7 +60,7 @@ struct TileStats
     {
     }
 
-    static const unsigned MAX_CYCLES = 1024;
+    static const unsigned MAX_CYCLES = 2 * ISAAC_READ_LENGTH_MAX;
     uint64_t cycleBlanks_[MAX_CYCLES];
     uint64_t cycleUniquelyAlignedBlanks_[MAX_CYCLES];
     uint64_t cycleMismatches_[MAX_CYCLES];

@@ -156,7 +156,9 @@ void FragmentBinner::flushSingle(
         lastBinIndex = binIndexList.indexes_[i];
         registerFragment(
                 fragment,
-                0 != i && fragment.isAligned() && fragment.flags_.splitAlignment_,
+                // looks like some historical check for unaligned bin. Currently 
+                // results in massive undercounting of split alignments. Commented out: //0 != i &&
+                fragment.isAligned() && fragment.flags_.splitAlignment_,
                 binMetadataList[lastBinIndex]);
     }
 

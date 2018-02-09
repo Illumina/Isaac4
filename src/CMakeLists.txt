@@ -38,8 +38,8 @@ set(iSAAC_STRING "Isaac")
 # the branch builds will never upgrade the properly released version 
 set(iSAAC_VERSION_MAJOR 04)
 set(iSAAC_VERSION_MINOR 18)
-set(iSAAC_VERSION_PATCH 01)
-set(iSAAC_VERSION_DEVEL 19)
+set(iSAAC_VERSION_PATCH 02)
+set(iSAAC_VERSION_DEVEL 08)
 set(iSAAC_VERSION_FULL "${iSAAC_STRING}-${iSAAC_VERSION_MAJOR}.${iSAAC_VERSION_MINOR}.${iSAAC_VERSION_PATCH}.${iSAAC_VERSION_DEVEL}")
 
 if (CPACK_GENERATOR)
@@ -127,6 +127,9 @@ set (iSAAC_LIBXSLT_VERSION 1.1.31)
 set (LIBXSLT_REDIST_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../redist")
 
 set (iSAAC_LIBEXSLT_VERSION 0.8.19)
+
+
+set (ISAAC_READ_LENGTH_MAX 400 CACHE STRING "Maximum read lengt supported by the aligner")
 
 # globals and macros
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")

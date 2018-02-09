@@ -179,12 +179,12 @@ void GapRealigner::updatePairDetails(
                      "\n" << fragment <<
                      " mate:\n" << mate);
 
+    fragment.fStrandPosition_ = index.pos_;
+    mate.mateFStrandPosition_ = fragment.fStrandPosition_;
     fragment.bamTlen_ = io::FragmentAccessor::getTlen(
         fragment.getFStrandReferencePosition(), fragment.getRStrandReferencePosition(),
         mate.getFStrandReferencePosition(), mate.getRStrandReferencePosition(), !fragment.flags_.secondRead_);
     mate.bamTlen_ = -fragment.bamTlen_;
-    fragment.fStrandPosition_ = index.pos_;
-    mate.mateFStrandPosition_ = fragment.fStrandPosition_;
     mate.flags_.properPair_ = fragment.flags_.properPair_ =
         alignment::TemplateLengthStatistics::Nominal ==
             barcodeTemplateLengthStatistics.at(fragment.barcode_).checkModel(fragment, mate);
