@@ -36,10 +36,10 @@ set(iSAAC_STRING "Isaac")
 # According to http://rpm.org/api/4.4.2.2/rpmvercmp_8c-source.html the numeric version components are always 
 # newer than alphabetic Jira ticket name in marketing version ensures it is easy to locate the branch and that
 # the branch builds will never upgrade the properly released version 
-set(iSAAC_VERSION_MAJOR 04)
+set(iSAAC_VERSION_MAJOR SAAC01326)
 set(iSAAC_VERSION_MINOR 18)
 set(iSAAC_VERSION_PATCH 02)
-set(iSAAC_VERSION_DEVEL 08)
+set(iSAAC_VERSION_DEVEL 09)
 set(iSAAC_VERSION_FULL "${iSAAC_STRING}-${iSAAC_VERSION_MAJOR}.${iSAAC_VERSION_MINOR}.${iSAAC_VERSION_PATCH}.${iSAAC_VERSION_DEVEL}")
 
 if (CPACK_GENERATOR)

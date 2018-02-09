@@ -110,7 +110,7 @@ template <typename AllocatorT>
 class BasicContigList : protected std::vector<BasicContig<AllocatorT > >
 {
     static const std::size_t CONTIG_LENGTH_MIN = 0x10000;
-    static const std::size_t OFFSET_MAX = 0x0ffffffffUL;
+    static const std::size_t OFFSET_MAX = 0x1ffffffffUL;
     static const std::size_t TRANSLATION_TABLE_SIZE = (OFFSET_MAX + 1) / CONTIG_LENGTH_MIN;
 
 //    typedef BasicContigList<AllocatorT> MyT;
@@ -126,7 +126,7 @@ public:
     typedef typename ReferenceSequence::iterator ReferenceSequenceIterator;
     typedef typename ReferenceSequence::const_iterator ReferenceSequenceConstIterator;
     typedef unsigned short ContigId;
-    typedef uint32_t Offset;
+    typedef uint64_t Offset;
     static const ContigId INVALID_CONTIG_ID = ContigId(0) - 1;
 
 protected:
