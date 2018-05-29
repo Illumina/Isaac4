@@ -238,6 +238,7 @@ private:
 
     const unsigned expectedCoverage_;
     const unsigned int estimatedFragmentSize_;
+    const double expectedBgzfCompressionRatio_;
     const uint64_t targetFragmentsPerBin_;
     const uint64_t targetBinLength_;
     const uint64_t targetBinSize_;
@@ -277,7 +278,6 @@ private:
     const std::string &bamPuFormat_;
     const bool bamProduceMd5_;
     const std::vector<std::string> &bamHeaderTags_;
-    const double expectedBgzfCompressionRatio_;
     const bool singleLibrarySamples_;
     const bool keepDuplicates_;
     const bool markDuplicates_;

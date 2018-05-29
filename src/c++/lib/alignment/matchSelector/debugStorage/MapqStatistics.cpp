@@ -204,7 +204,7 @@ MapqStatistics::MapqStatistics(
     const boost::filesystem::path &outputMapqFilePath,
     const boost::filesystem::path &outputSmFilePath,
     const boost::filesystem::path &outputAsFilePath):
-    debugClassFilter_(debugClassFilter),
+//    debugClassFilter_(debugClassFilter),
     outputMapqFilePath_(outputMapqFilePath),
     outputSmFilePath_(outputSmFilePath),
     outputAsFilePath_(outputAsFilePath),

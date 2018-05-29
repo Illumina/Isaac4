@@ -182,7 +182,6 @@ public:
         const boost::array<char, 256> &fullBclQScoreTable,
         const unsigned targetBinLength,
         const uint64_t targetBinSize,
-        const double expectedBgzfCompressionRatio,
         const bool preSortBins,
         const bool preAllocateBins,
         const std::string &binRegexString,

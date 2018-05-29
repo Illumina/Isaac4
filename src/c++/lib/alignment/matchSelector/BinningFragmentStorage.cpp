@@ -162,7 +162,6 @@ BinningFragmentStorage::BinningFragmentStorage(
     alignment::BinMetadataList &binMetadataList):
         FragmentBinner(keepUnaligned, binIndexMap, preAllocateBins ? expectedBinSize : 0, threads),
         binIndexMap_(binIndexMap),
-        preAllocateBins_(preAllocateBins),
         expectedBinSize_(expectedBinSize),
         binMetadataList_(binMetadataList)
 {

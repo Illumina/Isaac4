@@ -70,10 +70,8 @@ TemplateBuilder::TemplateBuilder(
     , matchFinderShadowSplitRepeats_(matchFinderShadowSplitRepeats)
     , scatterRepeats_(scatterRepeats)
     , rescueShadows_(rescueShadows)
-    , anchorMate_(anchorMate)
     , dodgyAlignmentScore_(dodgyAlignmentScore)
     , anomalousPairHandicap_(pow10(double(anomalousPairHandicap) / 10.0) - 1.0)//anomalousPairHandicap)
-    , flowcellLayoutList_(flowcellLayoutList)
     , smitWatermanGapsMax_(smitWatermanGapsMax)
     , splitAlignments_(splitAlignments)
     , alignmentCfg_(alignmentCfg)
@@ -82,11 +80,11 @@ TemplateBuilder::TemplateBuilder(
     , fragmentBuilder_(
         collectMismatchCycles, flowcellLayoutList, repeatThreshold_, seedLength_, maxSeedsPerMatch,
         std::max(matchFinderTooManyRepeats, std::max(matchFinderWayTooManyRepeats, matchFinderShadowSplitRepeats)),
-        gappedMismatchesMax, smitWatermanGapsMax,
+        gappedMismatchesMax, smitWatermanGapsMax_,
         smartSmithWaterman, smithWatermanGapSizeMax, !smitWatermanGapsMax_, splitAlignments,
         alignmentCfg_, cigarBuffer_, reserveBuffers)
     , shadowAligner_(collectMismatchCycles, flowcellLayoutList,
-                     gappedMismatchesMax, smitWatermanGapsMax, smartSmithWaterman, !smitWatermanGapsMax_, splitAlignments, alignmentCfg_, cigarBuffer_)
+                     gappedMismatchesMax, smitWatermanGapsMax_, smartSmithWaterman, !smitWatermanGapsMax_, splitAlignments, alignmentCfg_, cigarBuffer_)
     , splitReadAligner_(collectMismatchCycles, alignmentCfg_)
     , bestCombinationPairInfo_(0)
     , bestRescuedPair_(0)
@@ -96,14 +94,15 @@ TemplateBuilder::TemplateBuilder(
     {
 //        ISAAC_TRACE_STAT("TemplateBuilder before cigarBuffer_.reserve");
         // if smith waterman is enabled, each candidate may produce up to one more gapped cigar
-        const bool gapsPossible = std::max<unsigned>(smitWatermanGapsMax, splitAlignments);
+        const unsigned gapsMax = std::max<unsigned>(smitWatermanGapsMax_, splitAlignments_);
         cigarBuffer_.reserve(
             // Cigar::getMaxOperationsForReads already accounts for read pairing
-            Cigar::getMaxOperationsForReads(flowcellLayoutList, false) +
-            gapsPossible * Cigar::getMaxOperationsForReads(flowcellLayoutList, true) * repeatThreshold_ +
-            rescueShadows_ ?
-                Cigar::getMaxOperationsForReads(flowcellLayoutList, gapsPossible) *
-                std::max(matchFinderTooManyRepeats, std::max(matchFinderWayTooManyRepeats, matchFinderShadowSplitRepeats)) : 0);
+            Cigar::getMaxOperationsForReads(flowcellLayoutList, 0) +
+            // we store up to repeatThreshold_ gapped candidates
+            (!!gapsMax) * Cigar::getMaxOperationsForReads(flowcellLayoutList, gapsMax) * repeatThreshold_ +
+            (rescueShadows_ ?
+                Cigar::getMaxOperationsForReads(flowcellLayoutList, gapsMax) *
+                std::max(matchFinderTooManyRepeats, std::max(matchFinderWayTooManyRepeats, matchFinderShadowSplitRepeats)) : 0));
 
         ISAAC_TRACE_STAT("TemplateBuilder before shadowList_.reserve");
         // each shadow can have up to 1 gapped alignment + have some room left to mix seed and rescued candidates for scoring
@@ -117,7 +116,7 @@ TemplateBuilder::TemplateBuilder(
         // each candidate can have up to 1 gapped alignment
         std::for_each(
             candidates_.begin(), candidates_.end(), boost::bind(&FragmentMetadataList::reserve, _1,
-            repeatThreshold_ + gapsPossible * repeatThreshold_));
+            repeatThreshold_ + gapsMax * repeatThreshold_));
         ISAAC_TRACE_STAT("TemplateBuilder after candidates_.reserve");
     }
 }

@@ -85,7 +85,9 @@ void FragmentBinner::registerFragment(const io::FragmentAccessor& fragment,
         {
             binMetadata.incrementGapCount(fragment.fStrandPosition_, fragment.gapCount_, fragment.barcode_);
         }
-        binMetadata.incrementCigarLength(fragment.fStrandPosition_, fragment.cigarLength_, fragment.barcode_);
+        binMetadata.incrementCigarLength(
+            // approximate aligned bases as readLengt_
+            fragment.fStrandPosition_, fragment.cigarLength_, fragment.readLength_, fragment.barcode_);
     }
 }
 

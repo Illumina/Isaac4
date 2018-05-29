@@ -59,8 +59,6 @@ public:
             singleLibrarySamples_(singleLibrarySamples),
             keepDuplicates_(keepDuplicates),
             markDuplicates_(markDuplicates),
-            anchorMate_(anchorMate),
-            barcodeMetadataList_(barcodeMetadataList),
             contigLists_(contigLists),
             bamSerializer_(barcodeBamMapping.getSampleIndexMap(), splitGapLength)
     {
@@ -79,8 +77,6 @@ private:
     const bool singleLibrarySamples_;
     const bool keepDuplicates_;
     const bool markDuplicates_;
-    const bool anchorMate_;
-    const flowcell::BarcodeMetadataList &barcodeMetadataList_;
     const reference::ContigLists &contigLists_;
     BamSerializer bamSerializer_;
 

@@ -38,8 +38,8 @@ set(iSAAC_STRING "Isaac")
 # the branch builds will never upgrade the properly released version 
 set(iSAAC_VERSION_MAJOR 04)
 set(iSAAC_VERSION_MINOR 18)
-set(iSAAC_VERSION_PATCH 02)
-set(iSAAC_VERSION_DEVEL 08)
+set(iSAAC_VERSION_PATCH 05)
+set(iSAAC_VERSION_DEVEL 23)
 set(iSAAC_VERSION_FULL "${iSAAC_STRING}-${iSAAC_VERSION_MAJOR}.${iSAAC_VERSION_MINOR}.${iSAAC_VERSION_PATCH}.${iSAAC_VERSION_DEVEL}")
 
 if (CPACK_GENERATOR)
@@ -130,6 +130,8 @@ set (iSAAC_LIBEXSLT_VERSION 0.8.19)
 
 
 set (ISAAC_READ_LENGTH_MAX 400 CACHE STRING "Maximum read lengt supported by the aligner")
+set (ISAAC_CONTIG_LENGTH_MIN 0x10000 CACHE STRING "Minimum length assumed for a contig")
+set (ISAAC_GENOME_OFFSET_MAX 0x0ffffffff CACHE STRING "Maximum total length of all contigs combined")
 
 # globals and macros
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
@@ -152,11 +154,17 @@ if (WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
     include ("${CMAKE_SOURCE_DIR}/cmake/win32/vs_intel.cmake")
 
 else ()
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+     include ("${CMAKE_SOURCE_DIR}/cmake/clang.cmake")
+
+     include ("${CMAKE_SOURCE_DIR}/cmake/boost.cmake")
+  else ()
 
     # configure compiler
     include ("${CMAKE_SOURCE_DIR}/cmake/gcc.cmake")
 
     include ("${CMAKE_SOURCE_DIR}/cmake/boost.cmake")
+  endif()
 
 endif ()
 

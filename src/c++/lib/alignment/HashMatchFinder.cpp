@@ -556,6 +556,12 @@ template class ClusterHashMatchFinder<reference::ReferenceHash<oligo::BasicKmerT
 template class ClusterHashMatchFinder<reference::ReferenceHash<oligo::BasicKmerType<18>, common::NumaAllocator<void, common::numa::defaultNodeInterleave> > >;
 template class ClusterHashMatchFinder<reference::ReferenceHash<oligo::BasicKmerType<19>, common::NumaAllocator<void, common::numa::defaultNodeInterleave> > >;
 template class ClusterHashMatchFinder<reference::ReferenceHash<oligo::BasicKmerType<20>, common::NumaAllocator<void, common::numa::defaultNodeInterleave> > >;
+template class ClusterHashMatchFinder<reference::ReferenceHash<oligo::BasicKmerType<21>, common::NumaAllocator<void, common::numa::defaultNodeInterleave> > >;
+template class ClusterHashMatchFinder<reference::ReferenceHash<oligo::BasicKmerType<22>, common::NumaAllocator<void, common::numa::defaultNodeInterleave> > >;
+template class ClusterHashMatchFinder<reference::ReferenceHash<oligo::BasicKmerType<23>, common::NumaAllocator<void, common::numa::defaultNodeInterleave> > >;
+template class ClusterHashMatchFinder<reference::ReferenceHash<oligo::BasicKmerType<24>, common::NumaAllocator<void, common::numa::defaultNodeInterleave> > >;
+
 
 } // namespace alignment
 } // namespace isaac
+

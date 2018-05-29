@@ -30,6 +30,8 @@ namespace isaac
 namespace oligo
 {
 
+static const unsigned KMERGENERATOR_BITS_PER_BASE = 2;
+
 /**
  ** \brief A component to generate successive kmers from a sequence.
  **
@@ -107,7 +109,6 @@ public:
         return t;
     }
 private:
-    static const unsigned BITS_PER_BASE = 2;
     static const unsigned BITS_PER_BYTE = 8;
     InputIteratorT current_;
     const InputIteratorT end_;
@@ -136,7 +137,7 @@ private:
             const unsigned baseValue = translator_[*current_];
             if(INVALID_OLIGO > baseValue)
             {
-                kmer_ <<= BITS_PER_BASE;
+                kmer_ <<=  KMERGENERATOR_BITS_PER_BASE;
                 kmer_ |= T(baseValue);
                 if (uninitializedBases)
                 {

@@ -42,6 +42,8 @@ namespace isaac
 namespace alignment
 {
 
+static const std::size_t TOP_BEST_SEED_CANDIDATES_FOR_ANOMALOUS_SCORING = 10;
+
 /**
  ** \brief Utility component creating Template instances from Seed Matches.
  **
@@ -127,7 +129,6 @@ private:
     // BEST_SHADOWS_TO_KEEP includes semialigned shadows and SV candidates.
     // higher numbers lead to too many candidates stored causing cigar buffer running out of capacity
     static const std::size_t BEST_SHADOWS_TO_KEEP = 1000;
-    static const std::size_t TOP_BEST_SEED_CANDIDATES_FOR_ANOMALOUS_SCORING = 10;
     static const unsigned SEMIALIGNED_MATCHES_MIN = 16;
 
     const unsigned repeatThreshold_;
@@ -138,11 +139,9 @@ private:
 
     const bool scatterRepeats_;
     const bool rescueShadows_;
-    const bool anchorMate_;
     const DodgyAlignmentScore dodgyAlignmentScore_;
     const double anomalousPairHandicap_;
 
-    const flowcell::FlowcellLayoutList &flowcellLayoutList_;
     const unsigned smitWatermanGapsMax_;
     const bool splitAlignments_;
     const AlignmentCfg &alignmentCfg_;

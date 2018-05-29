@@ -65,7 +65,7 @@ struct IncludeTags
 
 class FragmentAccessorBamAdapter
 {
-    const unsigned maxReadLength_;
+    // const unsigned maxReadLength_;
     const flowcell::TileMetadataList &tileMetadataList_;
     const flowcell::BarcodeMetadataList &barcodeMetadataList_;
     const BuildContigMap &contigMap_;
@@ -86,8 +86,8 @@ class FragmentAccessorBamAdapter
     unsigned char forcedDodgyAlignmentScore_;
     flowcell::FlowcellLayoutList const &flowCellLayoutList_;
     const IncludeTags includeTags_;
-    const bool pessimisticMapQ_;
-    const unsigned splitGapLength_;
+    // const bool pessimisticMapQ_;
+    // const unsigned splitGapLength_;
     const SplitInfoList &splitInfoList_;
 
     common::StaticVector<char, 10240> saTagBuffer_;
@@ -117,15 +117,16 @@ public:
         const unsigned splitGapLength,
         const SplitInfoList &splitInfoList
         ) :
-        maxReadLength_(maxReadLength), tileMetadataList_(tileMetadataList),
+        // maxReadLength_(maxReadLength),
+        tileMetadataList_(tileMetadataList),
         barcodeMetadataList_(barcodeMetadataList),
         contigMap_(contigMap), contigLists_(contigLists),
         pos_(0ul), pFragment_(0), reverse_(false),
         forcedDodgyAlignmentScore_(forcedDodgyAlignmentScore),
         flowCellLayoutList_(flowCellLayoutList),
         includeTags_(includeTags),
-        pessimisticMapQ_(pessimisticMapQ),
-        splitGapLength_(splitGapLength),
+        // pessimisticMapQ_(pessimisticMapQ),
+        // splitGapLength_(splitGapLength),
         splitInfoList_(splitInfoList),
         saNM_(-1U),
         primaryAlignment_(false),

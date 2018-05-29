@@ -40,7 +40,7 @@ class ReferenceHasher
     typedef SeedGeneratorThread<KmerT> BaseT;
 //    typedef PermutatedKmerGenerator<KmerT, permutatedKmerGenerator::ForwardNoPermutate> BaseT;
     typedef typename ReferenceHashT::Positions Positions;
-    typedef typename ReferenceHashT::KeyT Offset;
+    typedef typename ReferenceHashT::Offset Offset;
     typedef typename ReferenceHashT::Offsets Offsets;
     static const std::size_t THREAD_BUFFER_KMERS_MAX = 8192; // arbitrary number that reduces the cost/benefit of acquiring a mutex
 public:

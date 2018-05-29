@@ -28,6 +28,8 @@ namespace isaac
 namespace reference
 {
 
+static const ContigId INVALID_CONTIG_ID = ContigId(0) - 1;
+
 static std::size_t roundToPadding(const std::size_t size, const std::size_t padding)
 {
     return (((size + padding - 1) / padding) * padding);
@@ -58,7 +60,7 @@ BasicContigList<AllocatorT>::BasicContigList(
     const isaac::reference::SortedReferenceMetadata::Contigs &contigMetadataList,
     const std::size_t spacing):
     contigIdFromScaledOffset_(TRANSLATION_TABLE_SIZE, INVALID_CONTIG_ID),
-    referenceSequence_(genomeSize(contigMetadataList, CONTIG_LENGTH_MIN, spacing))
+    referenceSequence_(genomeSize(contigMetadataList, ISAAC_CONTIG_LENGTH_MIN, spacing))
 {
     this->reserve(contigMetadataList.size() + 1);
     ReferenceSequenceIterator b = referenceSequence_.begin();
@@ -67,7 +69,7 @@ BasicContigList<AllocatorT>::BasicContigList(
         [this, &b, spacing](const isaac::reference::SortedReferenceMetadata::Contig &contigMetadata)
         {
             Contig ret(contigMetadata.index_, contigMetadata.name_, contigMetadata.decoy_, b + spacing, b + spacing + contigMetadata.totalBases_);
-            b += roundToPadding(contigMetadata.totalBases_ + spacing, CONTIG_LENGTH_MIN);
+            b += roundToPadding(contigMetadata.totalBases_ + spacing, ISAAC_CONTIG_LENGTH_MIN);
             ISAAC_ASSERT_MSG(referenceSequence_.end() >= b, "Overrun");
             return ret;
         });
@@ -76,9 +78,9 @@ BasicContigList<AllocatorT>::BasicContigList(
 
     for (ContigId contigId = 0; contigId < size() - 1; ++contigId)
     {
-        for (std::size_t offset = contigBeginOffset(contigId); offset < contigBeginOffset(contigId + 1); offset += CONTIG_LENGTH_MIN)
+        for (std::size_t offset = contigBeginOffset(contigId); offset < contigBeginOffset(contigId + 1); offset += ISAAC_CONTIG_LENGTH_MIN)
         {
-            contigIdFromScaledOffset_[offset / CONTIG_LENGTH_MIN] = contigId;
+            contigIdFromScaledOffset_[offset / ISAAC_CONTIG_LENGTH_MIN] = contigId;
         }
     }
     // remove fake one to avoid messing up end();

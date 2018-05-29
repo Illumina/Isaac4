@@ -184,5 +184,8 @@
 
 #define ISAAC_READ_LENGTH_MAX @ISAAC_READ_LENGTH_MAX@
 
+#define ISAAC_CONTIG_LENGTH_MIN @ISAAC_CONTIG_LENGTH_MIN@UL
+#define ISAAC_GENOME_OFFSET_MAX @ISAAC_GENOME_OFFSET_MAX@UL
+
 /* Define to empty if `const' does not conform to ANSI C. */
 #undef const

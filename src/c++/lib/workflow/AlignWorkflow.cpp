@@ -185,6 +185,7 @@ AlignWorkflow::AlignWorkflow(
     , estimatedFragmentSize_(io::FragmentHeader::getMinTotalLength(
         flowcell::getMaxReadLength(flowcellLayoutList_),
         flowcell::getMaxClusterName(flowcellLayoutList_)))
+    , expectedBgzfCompressionRatio_(expectedBgzfCompressionRatio)
     , targetFragmentsPerBin_(targetBinSize ?
         targetBinSize / estimatedFragmentSize_ :
         build::Build::estimateOptimumFragmentsPerBin(estimatedFragmentSize_, availableMemory_, expectedBgzfCompressionRatio_, coresMax_))
@@ -226,7 +227,6 @@ AlignWorkflow::AlignWorkflow(
     , bamPuFormat_(bamPuFormat)
     , bamProduceMd5_(bamProduceMd5)
     , bamHeaderTags_(bamHeaderTags)
-    , expectedBgzfCompressionRatio_(expectedBgzfCompressionRatio)
     , singleLibrarySamples_(singleLibrarySamples)
     , keepDuplicates_(keepDuplicates)
     , markDuplicates_(markDuplicates)
@@ -334,7 +334,6 @@ void AlignWorkflow::findMatches(
         fullBclQScoreTable_,
         targetBinLength_,
         targetBinSize_,
-        expectedBgzfCompressionRatio_,
         preSortBins_,
         preAllocateBins_,
         binRegexString_,

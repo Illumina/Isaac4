@@ -22,6 +22,7 @@
 #include <vector>
 #include <ostream>
 #include <fstream>
+#include <typeinfo>
 
 #include <boost/assign.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
@@ -43,6 +44,8 @@
 #include "alignOptions/FastqFlowcell.hh"
 #include "alignOptions/DefaultAdaptersOption.hh"
 #include "alignOptions/UseBasesMaskOption.hh"
+
+#include "reference/Contig.hh"
 
 namespace isaac
 {
@@ -1015,6 +1018,7 @@ common::Options::Action AlignOptions::parse(int argc, char *argv[])
 {
     const std::vector<std::string> allOptions(argv, argv + argc);
     ISAAC_THREAD_CERR << "Version: " << iSAAC_VERSION_FULL << std::endl;
+    ISAAC_THREAD_CERR << "Genome offset type: " << typeid(isaac::reference::ContigList::Offset).name() << std::endl;
     ISAAC_THREAD_CERR << "argc: " << argc << " argv: " << boost::join(allOptions, " ") << std::endl;
 
     this->argv.insert(this->argv.end(), argv, argv + argc);

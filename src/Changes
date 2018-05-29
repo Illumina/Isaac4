@@ -1,3 +1,24 @@
+Isaac-04.18.05.23
+* SAAC-1341 Isaac runs out of file handles for bins with defaults on human with default linux ulimit -n 1024
+
+Isaac-04.18.05.17
+* SAAC-1335 Isaac fails to build with clang
+
+Isaac-04.18.05.11
+* SAAC-1340 gcc8 compatibility
+
+Isaac-04.18.05.02
+* SAAC-1326 Support for references over 4 gigabases
+
+Isaac-04.18.04.28
+* SAAC-1339 Memory control failure with splitInfoList_
+
+Isaac-04.18.04.27
+* SAAC-1336 Massive overestimation of splits in non-wgs barcoded samples
+
+Isaac-04.18.02.14
+* SAAC-1330 Potential race condition potentially leading to proper pair flag instability
+
 Isaac-04.18.02.08
 * SAAC-1329 crash on reads over 256 bases long with default seed length
 

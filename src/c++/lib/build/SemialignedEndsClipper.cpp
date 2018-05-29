@@ -35,11 +35,10 @@ using alignment::Cigar;
 bool SemialignedEndsClipper::clipLeftSide(
     const reference::ContigList &contigList,
     const reference::ReferencePosition binEndPos,
+    const unsigned char *sequenceBegin,
     PackedFragmentBuffer::Index &index,
-    io::FragmentAccessor &fragment)
+    unsigned short &newEditDistance)
 {
-    const unsigned char *sequenceBegin = fragment.basesBegin();
-
     const uint32_t *oldCigarBegin = index.cigarBegin_;
     std::pair<unsigned, alignment::Cigar::OpCode> operation = alignment::Cigar::decode(*oldCigarBegin);
     unsigned softClippedBeginBases = 0;
@@ -70,7 +69,7 @@ bool SemialignedEndsClipper::clipLeftSide(
             index.pos_ += clipped.first;
             // don't update fStrandPosition_ here. index has it and it will be properly synced by gap realigner updatePairDetails
 //            fragment.fStrandPosition_ += clipped.first;
-            fragment.editDistance_ -= clipped.second;
+            newEditDistance -= clipped.second;
 
             size_t before = cigarBuffer_.size();
             cigarBuffer_.addOperation(softClippedBeginBases, Cigar::SOFT_CLIP);
@@ -86,11 +85,11 @@ bool SemialignedEndsClipper::clipLeftSide(
 
 bool SemialignedEndsClipper::clipRightSide(
     const reference::ContigList &contigList,
+    const unsigned char *sequenceEnd,
     PackedFragmentBuffer::Index &index,
-    io::FragmentAccessor &fragment)
+    reference::ReferencePosition &newRStrandPosition,
+    unsigned short &newEditDistance)
 {
-    const unsigned char *sequenceEnd = fragment.basesEnd();
-
     std::reverse_iterator<const unsigned char *> sequenceRBegin(sequenceEnd);
 
     const uint32_t *oldCigarEnd = index.cigarEnd_;
@@ -111,7 +110,7 @@ bool SemialignedEndsClipper::clipRightSide(
 
         const reference::Contig &reference = contigList.at(index.pos_.getContigId());
 //        ISAAC_ASSERT_MSG(index.pos_ == fragment.fStrandPosition_, "Broken index :" << index << "\n" << fragment);
-        std::reverse_iterator<reference::Contig::const_iterator> referenceRBegin(reference.begin() + fragment.rStrandPosition_.getPosition() + 1);
+        std::reverse_iterator<reference::Contig::const_iterator> referenceRBegin(reference.begin() + newRStrandPosition.getPosition() + 1);
         std::reverse_iterator<reference::Contig::const_iterator> referenceREnd(reference.begin());
 
         std::pair<unsigned, unsigned> clipped = alignment::clipMismatches<CONSECUTIVE_MATCHES_MIN>(sequenceRBegin, sequenceREnd,
@@ -122,8 +121,8 @@ bool SemialignedEndsClipper::clipRightSide(
         {
             softClippedEndBases += clipped.first;
             mappedEndBases -= clipped.first;
-            fragment.rStrandPosition_ -= clipped.first;
-            fragment.editDistance_ -= clipped.second;
+            newRStrandPosition -= clipped.first;
+            newEditDistance -= clipped.second;
 
             size_t before = cigarBuffer_.size();
             cigarBuffer_.addOperations(index.cigarBegin_, oldCigarEnd - 1);
@@ -140,13 +139,15 @@ bool SemialignedEndsClipper::clipRightSide(
 void SemialignedEndsClipper::clip(
     const reference::ContigList &contigs,
     const reference::ReferencePosition binEndPos,
+    const io::FragmentAccessor &fragment,
     PackedFragmentBuffer::Index &index,
-    io::FragmentAccessor &fragment)
+    reference::ReferencePosition &newRStrandPosition,
+    unsigned short &newEditDistance)
 {
     ISAAC_ASSERT_MSG(fragment.isAligned(), "Unexpected unaligned fragment from gap realigner");
 
-    const bool leftClipped = clipLeftSide(contigs, binEndPos, index, fragment);
-    const bool rightClipped = clipRightSide(contigs, index, fragment);
+    const bool leftClipped = clipLeftSide(contigs, binEndPos, fragment.basesBegin(), index, newEditDistance);
+    const bool rightClipped = clipRightSide(contigs, fragment.basesEnd(), index, newRStrandPosition, newEditDistance);
     if (leftClipped || rightClipped)
     {
         ISAAC_THREAD_CERR_DEV_TRACE(" SemialignedEndsClipper::clip: " << fragment);

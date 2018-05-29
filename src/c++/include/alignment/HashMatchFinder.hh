@@ -68,6 +68,11 @@ public:
         ReferenceOffsetList &referencePositions) const;
 };
 
+static const unsigned SV_READ_SEEDS_MIN = 1;
+static const unsigned SHORT_READ_SEEDS_MIN = 2;
+static const unsigned LONG_READ_SEEDS_MIN = 3;
+
+
 template <typename ReferenceHash, unsigned seedsPerMatchMax = 4>
 class ClusterHashMatchFinder : SeedHashMatchFinder<ReferenceHash>
 {
@@ -76,9 +81,6 @@ class ClusterHashMatchFinder : SeedHashMatchFinder<ReferenceHash>
 public:
     using BaseT::NO_CONTIG_FILTER;
     static const unsigned SEED_LENGTH = ReferenceHash::SEED_LENGTH;
-    static const unsigned SV_READ_SEEDS_MIN = 1;
-    static const unsigned SHORT_READ_SEEDS_MIN = 2;
-    static const unsigned LONG_READ_SEEDS_MIN = 3;
     BOOST_STATIC_ASSERT(seedsPerMatchMax >= SHORT_READ_SEEDS_MIN);
 
     ClusterHashMatchFinder(

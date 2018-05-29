@@ -35,12 +35,12 @@ namespace isaac
 namespace alignment
 {
 
-struct BinMetadata;
+class BinMetadata;
 inline std::ostream &operator<<(std::ostream &os, const BinMetadata &binMetadata);
 
 struct BarcodeCounts
 {
-    BarcodeCounts() : elements_(0), gaps_(0), splits_(0), cigarLength_(0){}
+    BarcodeCounts() : elements_(0), gaps_(0), splits_(0), cigarLength_(0), alignedBases_(0){}
     // total number of elements in the bin barcode
     uint64_t elements_;
     // total number of gaps in the bin barcode reads
@@ -50,6 +50,8 @@ struct BarcodeCounts
     uint64_t splits_;
     // sum of all fragment cigar lengths in the bin barcode.
     uint64_t cigarLength_;
+    // sum of all alignedBases
+    uint64_t alignedBases_;
 
     BarcodeCounts& operator += (const BarcodeCounts &that)
     {
@@ -57,6 +59,7 @@ struct BarcodeCounts
         gaps_ += that.gaps_;
         splits_ += that.splits_;
         cigarLength_ += that.cigarLength_;
+        alignedBases_ += that.alignedBases_;
         return *this;
     }
 
@@ -65,6 +68,13 @@ struct BarcodeCounts
         BarcodeCounts ret(left);
         return ret += right;
     }
+
+    friend std::ostream &operator<<(std::ostream &os, const BarcodeCounts &bc)
+    {
+        return os << "BarcodeCounts(" << bc.elements_ << "e " << bc.gaps_ << "g " <<
+            bc.splits_ << "s " << bc.cigarLength_ << "cl " << bc.alignedBases_ << "ab)";
+    }
+
 };
 
 class BinMetadata
@@ -300,8 +310,10 @@ public:
         barcodeBreakdown_.at(barcodeIdx).splits_ += by;
     }
 
-    void incrementCigarLength(const reference::ReferencePosition pos, const uint64_t by, const unsigned barcodeIdx)
+    void incrementCigarLength(
+        const reference::ReferencePosition pos, const uint64_t by, const uint64_t alignedBases, const unsigned barcodeIdx)
     {
+        barcodeBreakdown_.at(barcodeIdx).alignedBases_ += alignedBases;
         barcodeBreakdown_.at(barcodeIdx).cigarLength_ += by;
     }
 
@@ -336,6 +348,24 @@ public:
         return std::accumulate(barcodeBreakdown_.begin(), barcodeBreakdown_.end(), 0,
                                boost::bind(std::plus<uint64_t>(),
                                            _1, boost::bind(&BarcodeCounts::splits_, _2)));
+    }
+
+    uint64_t getEstimatedSplitCount(bool assumeRealignment) const
+    {
+        uint64_t ret = 0;
+        for (const BarcodeCounts &b : barcodeBreakdown_)
+        {
+            ret +=
+                (assumeRealignment && getLength() ?
+                    // barcode coverage in the bin if assuming (pessimistic) that splits will get realigned
+                    std::max<uint64_t>(1, (b.alignedBases_ / getLength())) :
+                    // 1 if just counting the existing splits is needed
+                    1) *
+                // times the splits
+                b.splits_;
+        }
+
+        return ret;
     }
 
     uint64_t getTotalCigarLength() const

@@ -45,10 +45,13 @@ public:
     typedef std::pair<const_iterator, const_iterator> MatchRange;
     typedef void value_type;// compatibility with std containers for numa replications
 
+    // the kmers are hashed into keys which are then used as indices into Offsets table
     typedef uint32_t KeyT;
-    typedef typename AllocatorT::template rebind<KeyT> OffsetAllocatorRebind;
+    // for large genomes Offset type must be > 32 bit
+    typedef uint64_t Offset;
+    typedef typename AllocatorT::template rebind<Offset> OffsetAllocatorRebind;
     typedef typename OffsetAllocatorRebind::other OffsetAllocator;
-    typedef std::vector<KeyT, OffsetAllocator> Offsets;
+    typedef std::vector<Offset, OffsetAllocator> Offsets;
 
     KeyT keyFromKmer(KmerT kmer) const
     {
@@ -69,7 +72,7 @@ public:
         {
             BOOST_THROW_EXCEPTION(common::InvalidParameterException("Bucket count 0 is invalid"));
         }
-        if (std::numeric_limits<KeyT>::max() + uint64_t(1) < bucketCount_)
+        if (std::numeric_limits<KeyT>::max() < bucketCount_ - 1)
         {
             BOOST_THROW_EXCEPTION(common::InvalidParameterException(
                 (boost::format("Bucket count %d is too large for key type %s. Max possible key value is %d") % bucketCount_ %
@@ -125,8 +128,8 @@ public:
     MatchRange iSAAC_PROFILING_NOINLINE findMatches(const KmerT &kmer) const
     {
         const KeyT key = keyFromKmer(kmer);
-        boost::uint32_t positionsBegin = !key ? 0 : offsets_[key - 1];
-        boost::uint32_t positionsEnd = offsets_[key];
+        Offset positionsBegin = !key ? 0 : offsets_[key - 1];
+        Offset positionsEnd = offsets_[key];
         ISAAC_ASSERT_MSG(positionsBegin <= positions_.size(), "Positions buffer overrun by positionsBegin:" << positionsBegin << " for kmer " << kmer);
         ISAAC_ASSERT_MSG(positionsBegin <= positionsEnd, "positionsEnd:" << positionsEnd << " overrun by positionsBegin:" << positionsBegin << " for kmer " << kmer);
 

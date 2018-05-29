@@ -113,7 +113,7 @@ public:
         static const unsigned SINGLE_SPLIT_LEFTOVER_COMPONENTS = 5;
         additionalCigars_.reserve(
             // Assuming each split read will result in two separate fragments
-            SINGLE_SPLIT_LEFTOVER_COMPONENTS * bin.getTotalSplitCount() * 2 +
+            SINGLE_SPLIT_LEFTOVER_COMPONENTS * bin.getEstimatedSplitCount(REALIGN_NONE != realignGaps_) * 2 +
             // assume each existing cigar gets realignedGapsPerFragment_ gaps introduced...
             (bin.getTotalCigarLength() + bin.getTotalElements() *
                 // assume that to introduce k gaps one will need to have k+1 operations between the gaps
@@ -134,7 +134,7 @@ public:
         // splits might have already been detected on all the relevant reads. However the assumption is
         // that in reality split deletions are harder to detect than regular ones.
         
-        splitInfoList_.reserve(bin_.getTotalSplitCount() * expectedCoverage * 2);
+        splitInfoList_.reserve(bin_.getEstimatedSplitCount(REALIGN_NONE != realignGaps_) * 2);
 
         // summarize chunk sizes to get offsets
         if (!inputFileBuf_.open(bin_.getPathString().c_str(), std::ios_base::binary|std::ios_base::in))

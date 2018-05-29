@@ -88,8 +88,6 @@ private:
     unsigned pendingClusterId_;
     boost::condition_variable stateChangedCondition_;
 
-    const unsigned detectTemplateBlockSize_;
-
     template <typename MatchFinderT>
     void templateLengthThread(
         const unsigned threadNumber,

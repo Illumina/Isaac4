@@ -55,6 +55,7 @@ static const unsigned char BCL_BASE_MASK = 0x03;
 template <bool withN = false, unsigned dfltVal = INVALID_OLIGO>
 struct Translator
 {
+    Translator(){}
     unsigned char operator[](const char &base) const
     {
         return getTranslatorTable()[static_cast<unsigned char>(base)];
@@ -100,22 +101,22 @@ private:
 
         return table;
 
-        BOOST_STATIC_ASSERT(table['a'] == 0);
-        BOOST_STATIC_ASSERT(table['A'] == 0);
-        BOOST_STATIC_ASSERT(table['c'] == 1);
-        BOOST_STATIC_ASSERT(table['C'] == 1);
-        BOOST_STATIC_ASSERT(table['g'] == 2);
-        BOOST_STATIC_ASSERT(table['G'] == 2);
-        BOOST_STATIC_ASSERT(table['t'] == 3);
-        BOOST_STATIC_ASSERT(table['T'] == 3);
-        BOOST_STATIC_ASSERT(table['n'] == (withN ? INVALID_OLIGO : dfltVal));
-        BOOST_STATIC_ASSERT(table['N'] == (withN ? INVALID_OLIGO : dfltVal));
+//        BOOST_STATIC_ASSERT(table['a'] == 0);
+//        BOOST_STATIC_ASSERT(table['A'] == 0);
+//        BOOST_STATIC_ASSERT(table['c'] == 1);
+//        BOOST_STATIC_ASSERT(table['C'] == 1);
+//        BOOST_STATIC_ASSERT(table['g'] == 2);
+//        BOOST_STATIC_ASSERT(table['G'] == 2);
+//        BOOST_STATIC_ASSERT(table['t'] == 3);
+//        BOOST_STATIC_ASSERT(table['T'] == 3);
+//        BOOST_STATIC_ASSERT(table['n'] == (withN ? INVALID_OLIGO : dfltVal));
+//        BOOST_STATIC_ASSERT(table['N'] == (withN ? INVALID_OLIGO : dfltVal));
     }
 };
 
 inline unsigned int getValue(const char &base)
 {   
-    static const oligo::Translator<> translator = {};
+    static const oligo::Translator<> translator;
     return translator[base];
 }
 

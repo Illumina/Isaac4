@@ -42,7 +42,6 @@ class FastqBaseCallsSource : public TileSource, public BarcodeSource
 {
     const unsigned tileClustersMax_;
     const unsigned coresMax_;
-    const flowcell::BarcodeMetadataList &barcodeMetadataList_;
     const flowcell::Layout &fastqFlowcellLayout_;
     const unsigned clusterLength_;
     alignment::BclClusters loadedClusters_;

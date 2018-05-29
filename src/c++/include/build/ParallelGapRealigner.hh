@@ -52,13 +52,15 @@ public:
         const flowcell::BarcodeMetadataList &barcodeMetadataList,
         const std::vector<alignment::TemplateLengthStatistics> &barcodeTemplateLengthStatistics,
         const isaac::reference::ContigLists &contigLists) :
+            clipSemialigned_(clipSemialigned),
+            barcodeMetadataList_(barcodeMetadataList),
             contigLists_(contigLists),
             barcodeTemplateLengthStatistics_(barcodeTemplateLengthStatistics),
             threadCigars_(threads),
             threadGapRealigners_(
                 threads,
                 GapRealigner(realignGapsVigorously, realignDodgyFragments, realignedGapsPerFragment, 3, 4, 0,
-                             clipSemialigned, barcodeMetadataList))
+                             barcodeMetadataList))
     {
         std::for_each(threadCigars_.begin(), threadCigars_.end(), boost::bind(&alignment::Cigar::reserve, _1, THREAD_CIGAR_MAX));
         std::for_each(threadGapRealigners_.begin(), threadGapRealigners_.end(), boost::bind(&GapRealigner::reserve, _1));
@@ -72,6 +74,8 @@ public:
     void threadRealignGaps(boost::unique_lock<boost::mutex> &lock, BinData &binData, BinData::iterator &nextUnprocessed, uint64_t threadNumber);
 private:
     static const std::size_t THREAD_CIGAR_MAX =1024;
+    const bool clipSemialigned_;
+    const flowcell::BarcodeMetadataList &barcodeMetadataList_;
     const isaac::reference::ContigLists &contigLists_;
     const std::vector<alignment::TemplateLengthStatistics> &barcodeTemplateLengthStatistics_;
     std::vector<alignment::Cigar> threadCigars_;

@@ -35,7 +35,7 @@ namespace debugStorage
 
 class MapqStatistics
 {
-    const unsigned debugClassFilter_;
+//    const unsigned debugClassFilter_;
     const boost::filesystem::path outputMapqFilePath_;
     const boost::filesystem::path outputSmFilePath_;
     const boost::filesystem::path outputAsFilePath_;

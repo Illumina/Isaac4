@@ -23,8 +23,6 @@
 #include "build/GapRealigner.hh"
 #include "build/gapRealigner/ChooseKGapsFilter.hh"
 
-#include "SemialignedEndsClipper.hh"
-
 namespace isaac
 {
 namespace build
@@ -131,15 +129,20 @@ const GapRealigner::RealignmentBounds GapRealigner::extractRealignmentBounds(
 void GapRealigner::updatePairDetails(
     const std::vector<alignment::TemplateLengthStatistics> &barcodeTemplateLengthStatistics,
     const PackedFragmentBuffer::Index &index,
+    const reference::ReferencePosition newRStrandPosition,
+    const unsigned short newEditDistance,
     io::FragmentAccessor &fragment,
     PackedFragmentBuffer &dataBuffer)
 {
     fragment.flags_.realigned_ = true;
+    fragment.editDistance_ = newEditDistance;
+    fragment.rStrandPosition_ = newRStrandPosition;
+
     if (!index.hasMate() || fragment.flags_.mateUnmapped_)
     {
         // single-ended and mateless
-        fragment.fStrandPosition_ = index.pos_;
         const int oldBamTlen = fragment.bamTlen_;
+        fragment.fStrandPosition_ = index.pos_;
         fragment.bamTlen_ = fragment.bamTlen_ < 0 ?
             (-fragment.getObservedLength() + 1) : (fragment.getObservedLength() - 1);
         if (index.hasMate())
@@ -179,6 +182,7 @@ void GapRealigner::updatePairDetails(
                      "\n" << fragment <<
                      " mate:\n" << mate);
 
+    // fStrandPosition_ has to be set here after the assertion validations above
     fragment.fStrandPosition_ = index.pos_;
     mate.mateFStrandPosition_ = fragment.fStrandPosition_;
     fragment.bamTlen_ = io::FragmentAccessor::getTlen(
@@ -188,6 +192,15 @@ void GapRealigner::updatePairDetails(
     mate.flags_.properPair_ = fragment.flags_.properPair_ =
         alignment::TemplateLengthStatistics::Nominal ==
             barcodeTemplateLengthStatistics.at(fragment.barcode_).checkModel(fragment, mate);
+//    if ("C0D8DACXX:6:1102:356938:0" == std::string(fragment.nameBegin(), fragment.nameEnd()))
+//    C0D8DACXX:6:1107:536613:0
+//    C0D8DACXX:6:1104:1678023:0
+    if (fragment.clusterId_ == 1678023 || 356938 == fragment.clusterId_ || 536613 == fragment.clusterId_)
+    {
+        ISAAC_THREAD_CERR << "updatePairDetails:\n" << fragment << "\n" << mate << "\n" <<
+            barcodeTemplateLengthStatistics.at(fragment.barcode_).getLength(fragment, mate) << ":" <<
+            barcodeTemplateLengthStatistics.at(fragment.barcode_).alignmentModel(fragment, mate) << std::endl;
+    }
 
     ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(fragment.clusterId_, " updated mate for\n" << fragment << "\n" << index << " mate: \n" << mate);
 }
@@ -205,8 +218,10 @@ void GapRealigner::updatePairDetails(
 bool GapRealigner::compactCigar(
     const reference::ContigList &reference,
     const reference::ReferencePosition binEndPos,
+    const io::FragmentAccessor &fragment,
     PackedFragmentBuffer::Index &index,
-    io::FragmentAccessor &fragment,
+    reference::ReferencePosition &newRStrandPosition,
+    unsigned short &newEditDistance,
     alignment::Cigar &realignedCigars)
 {
     ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(fragment.clusterId_, " Compacting " << fragment << index);
@@ -325,7 +340,7 @@ bool GapRealigner::compactCigar(
     }
 
     // recompute editDistance and observed length
-    unsigned short newEditDistance = 0;
+    newEditDistance = 0;
     const unsigned char *basesIterator = fragment.basesBegin() + softClipStart;
     reference::Contig::const_iterator referenceIterator =
         reference.at(index.pos_.getContigId()).begin() + index.pos_.getPosition();
@@ -366,11 +381,8 @@ bool GapRealigner::compactCigar(
                       "Broken CIGAR after compacting: " << alignment::Cigar::toString(index.cigarBegin_, index.cigarEnd_) <<
                       " " << index << " " << fragment);
 
-    fragment.editDistance_ = newEditDistance;
-// this will get updated during updatePairDetails
-//    fragment.fStrandPosition_ = index.pos_;
     ISAAC_ASSERT_MSG(newEndPos.getPosition(), "New cigar has observed length of 0:" << fragment << " " << newEndPos);
-    fragment.rStrandPosition_ = newEndPos - 1;
+    newRStrandPosition = newEndPos - 1;
 
     ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(fragment.clusterId_, " Compacted " << fragment << index);
 
@@ -1133,9 +1145,11 @@ bool GapRealigner::findBetterGapsChoice(
 bool GapRealigner::realign(
     const gapRealigner::RealignerGaps &realignerGaps,
     const reference::ReferencePosition binStartPos,
-    reference::ReferencePosition binEndPos,
+    const reference::ReferencePosition binEndPos,
+    const io::FragmentAccessor &fragment,
     PackedFragmentBuffer::Index &index,
-    io::FragmentAccessor &fragment,
+    reference::ReferencePosition &newRStrandPosition,
+    unsigned short &newEditDistance,
     PackedFragmentBuffer &dataBuffer,
     alignment::Cigar &realignedCigars,
     const reference::ContigLists &contigLists)
@@ -1204,8 +1218,6 @@ bool GapRealigner::realign(
         using alignment::Cigar;
         ISAAC_THREAD_CERR_DEV_TRACE_CLUSTER_ID(fragment.clusterId_, "GapRealigner::realign " << index << fragment);
         const reference::ContigList &reference = contigLists.at(barcodeMetadataList_.at(fragment.barcode_).getReferenceIndex());
-        binEndPos = reference::ReferencePosition(
-            binEndPos.getContigId(), std::min<uint64_t>(binEndPos.getPosition(), reference.at(binEndPos.getContigId()).size()));
 
         if (fragment.flags_.paired_ && (binStartPos > fragment.mateFStrandPosition_ || binEndPos <= fragment.mateFStrandPosition_))
         {
@@ -1258,15 +1270,8 @@ bool GapRealigner::realign(
                 if (applyChoice(bestChoice.choice_, gaps, binEndPos, contigEndPos, tmp, fragment, realignedCigars))
                 {
         //            ISAAC_THREAD_CERR << " before compactCigar=" << index << fragment << std::endl;
-                    if (compactCigar(reference, binEndPos, tmp, fragment, realignedCigars))
+                    if (compactCigar(reference, binEndPos, fragment, tmp, newRStrandPosition, newEditDistance, realignedCigars))
                     {
-                        if (clipSemialigned_)
-                        {
-                            // Note! this has to be called after compactCigar as otherwise the fragment.observedLength_ is incorrect
-                            SemialignedEndsClipper clipper(realignedCigars);
-                            clipper.clip(reference, binEndPos, tmp, fragment);
-                        }
-
                         if (index != tmp)
                         {
                             index = tmp;

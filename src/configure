@@ -32,6 +32,10 @@ export CXX=${CXX:="g++"}
 
 ISAAC_DEFAULT_NUMA_DIR=/usr
 
+isaac_read_length_max=400
+isaac_contig_length_min=0x10000
+isaac_genome_offset_max=0x0ffffffff
+
 # Display Isaac configure usage
 isaac_usage()
 {
@@ -47,7 +51,9 @@ Configuration:
                               is the number of nodes [1]
   --package-type=type         enables generation of deployment package target (make package)
                               Valid types are: rpm, deb, tgz and cygwin-binary
-  --read-length-max           Maximum supported read length
+  --read-length-max           Maximum supported read length [${isaac_read_length_max}]
+  --contig-length-min         Minimum assumed contig length [$((${isaac_contig_length_min}))]
+  --genome-offset-max         Maximum length of all contigs combined [$((${isaac_genome_offset_max}))]
   --static                    forces library static linking
   --terse                     display less information (disables CMAKE_VERBOSE_MAKEFILE)
   --verbose                   display more information (enables CMAKE_VERBOSE_MAKEFILE)
@@ -246,7 +252,10 @@ for a in "$@"; do
         export CXXFLAGS="-pg -fprofile-arcs ${CXXFLAGS}"
     elif echo $a | grep "^--read-length-max" > /dev/null 2> /dev/null; then
         isaac_read_length_max=`echo $a | sed "s/^--read-length-max=//"`
-        CMAKE_OPTIONS="$CMAKE_OPTIONS -DISAAC_READ_LENGTH_MAX=${isaac_read_length_max}"
+    elif echo $a | grep "^--contig-length-min" > /dev/null 2> /dev/null; then
+        isaac_contig_length_min=`echo $a | sed "s/^--contig-length-min=//"`
+    elif echo $a | grep "^--genome-offset-max" > /dev/null 2> /dev/null; then
+        isaac_genome_offset_max=`echo $a | sed "s/^--genome-offset-max=//"`
     else
         echo "Unknown command line option: $a" >&2
         exit 2
@@ -322,6 +331,9 @@ CMAKE_OPTIONS="$CMAKE_OPTIONS -DiSAAC_DOCDIR:PATH=${isaac_doc_dir}"
 CMAKE_OPTIONS="$CMAKE_OPTIONS -DiSAAC_MANDIR:PATH=${isaac_man_dir}"
 CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_BUILD_TYPE:STRING=${isaac_build_type}"
 CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_PARALLEL:INTEGER=${isaac_parallel}"
+CMAKE_OPTIONS="$CMAKE_OPTIONS -DISAAC_READ_LENGTH_MAX=${isaac_read_length_max}"
+CMAKE_OPTIONS="$CMAKE_OPTIONS -DISAAC_CONTIG_LENGTH_MIN=${isaac_contig_length_min}"
+CMAKE_OPTIONS="$CMAKE_OPTIONS -DISAAC_GENOME_OFFSET_MAX=${isaac_genome_offset_max}"
 
 if [ -n "${isaac_static}" ]; then
     CMAKE_OPTIONS="$CMAKE_OPTIONS -DiSAAC_FORCE_STATIC_LINK:BOOL=ON"

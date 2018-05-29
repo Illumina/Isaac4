@@ -21,6 +21,8 @@
 
 #include "build/ParallelGapRealigner.hh"
 
+#include "SemialignedEndsClipper.hh"
+
 namespace isaac
 {
 namespace build
@@ -31,12 +33,29 @@ void ParallelGapRealigner::realign(
     io::FragmentAccessor& fragment, PackedFragmentBuffer::Index &index,
     BinData& binData, isaac::alignment::Cigar& cigars)
 {
+    reference::ReferencePosition newRStrandPosition;
+    unsigned short newEditDistance = 0;
+
+    const reference::ContigList &ref = contigLists_.at(barcodeMetadataList_.at(fragment.barcode_).getReferenceIndex());
+
+    const reference::ReferencePosition binEndPos(
+        binData.bin_.getBinEnd().getContigId(),
+        std::min<uint64_t>(binData.bin_.getBinEnd().getPosition(),
+                           ref.at(binData.bin_.getBinEnd().getContigId()).size()));
+
     if (realigner.realign(
-        binData.getRealignerGaps(fragment.barcode_), binData.bin_.getBinStart(), binData.bin_.getBinEnd(),
-        index, fragment,
+        binData.getRealignerGaps(fragment.barcode_), binData.bin_.getBinStart(), binEndPos,
+        fragment, index, newRStrandPosition, newEditDistance,
         binData.data_, cigars,
         contigLists_))
     {
+        if (clipSemialigned_)
+        {
+            // Note! this has to be called after compactCigar as otherwise the fragment.observedLength_ is incorrect
+            SemialignedEndsClipper clipper(cigars);
+            clipper.clip(ref, binEndPos, fragment, index, newRStrandPosition, newEditDistance);
+        }
+
         boost::unique_lock<boost::mutex> lock(cigarBufferMutex_);
         {
             const std::size_t before = binData.additionalCigars_.size();
@@ -45,7 +64,8 @@ void ParallelGapRealigner::realign(
             index.cigarEnd_ = &binData.additionalCigars_.back() + 1;
             // realignment affects both reads. We must make sure realignment updates on one read don't
             // collide with post-realignment pair updates from another read.
-            realigner.updatePairDetails(barcodeTemplateLengthStatistics_, index, fragment, binData.data_);
+            realigner.updatePairDetails(
+                barcodeTemplateLengthStatistics_, index, newRStrandPosition, newEditDistance, fragment, binData.data_);
         }
     }
 }

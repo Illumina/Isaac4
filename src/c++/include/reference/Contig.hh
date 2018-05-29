@@ -24,6 +24,8 @@
 #include <string>
 #include <vector>
 
+#include <boost/integer/static_log2.hpp>
+
 #include "common/Debug.hh"
 #include "common/NumaContainer.hh"
 #include "common/SameAllocatorVector.hh"
@@ -105,13 +107,19 @@ private:
     const_iterator end_;
 };
 
+typedef unsigned short ContigId;
 
 template <typename AllocatorT>
 class BasicContigList : protected std::vector<BasicContig<AllocatorT > >
 {
-    static const std::size_t CONTIG_LENGTH_MIN = 0x10000;
-    static const std::size_t OFFSET_MAX = 0x0ffffffffUL;
-    static const std::size_t TRANSLATION_TABLE_SIZE = (OFFSET_MAX + 1) / CONTIG_LENGTH_MIN;
+    // Hash table stores offsets into the linear genome blob. Translation table
+    // is required to get the actual contig Id and offset within contig from those.
+    // CONTIG_LENGTH_MIN ensures reasonable number of translation table entries whilst
+    // avoiding excessive size of Offset type when there is a large number of tiny contigs.
+    // Feel free to customize if your reference is special.
+    //static const std::size_t ISAAC_CONTIG_LENGTH_MIN = 0x10000;
+    //static const std::size_t ISAAC_GENOME_OFFSET_MAX = 0x0ffffffffUL;
+    static const std::size_t TRANSLATION_TABLE_SIZE = (ISAAC_GENOME_OFFSET_MAX + 1) / ISAAC_CONTIG_LENGTH_MIN;
 
 //    typedef BasicContigList<AllocatorT> MyT;
 //    typedef typename AllocatorT::template rebind<char> CharAllocatorRebind;
@@ -126,8 +134,9 @@ public:
     typedef typename ReferenceSequence::iterator ReferenceSequenceIterator;
     typedef typename ReferenceSequence::const_iterator ReferenceSequenceConstIterator;
     typedef unsigned short ContigId;
-    typedef uint32_t Offset;
-    static const ContigId INVALID_CONTIG_ID = ContigId(0) - 1;
+    //typedef uint64_t Offset;
+    // compute the number of bits required to represent OFFSET_MAX. Find the smallest type that has it
+    typedef boost::uint_t<boost::static_log2<ISAAC_GENOME_OFFSET_MAX>::value + 1>::least Offset;
 
 protected:
     std::vector<ContigId> contigIdFromScaledOffset_;
@@ -170,7 +179,7 @@ public:
                            referenceSequence_.begin() + std::distance<ReferenceSequenceConstIterator>(referenceSequence_.begin(), contig.end()));
     }
 
-    ContigId contigIdFromOffset(const Offset offset) const {return contigIdFromScaledOffset_.at(offset / CONTIG_LENGTH_MIN);}
+    ContigId contigIdFromOffset(const Offset offset) const {return contigIdFromScaledOffset_.at(offset / ISAAC_CONTIG_LENGTH_MIN);}
     std::int64_t positionFromOffset(const Offset offset) const {return offset - contigBeginOffset(contigIdFromOffset(offset));}
 //
 //    isaac::reference::ReferencePosition referencePositionFromOffset(const Offset offset, bool reverse) const

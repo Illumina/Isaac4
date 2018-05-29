@@ -42,8 +42,10 @@ public:
     void clip(
         const reference::ContigList &contigs,
         const reference::ReferencePosition binEndPos,
+        const io::FragmentAccessor &fragment,
         PackedFragmentBuffer::Index &index,
-        io::FragmentAccessor &fragment);
+        reference::ReferencePosition &newRStrandPosition,
+        unsigned short &newEditDistance);
 
 private:
     alignment::Cigar &cigarBuffer_;
@@ -51,13 +53,16 @@ private:
     bool clipLeftSide(
         const reference::ContigList &contigList,
         const reference::ReferencePosition binEndPos,
+        const unsigned char *sequenceBegin,
         PackedFragmentBuffer::Index &index,
-        io::FragmentAccessor &fragment);
+        unsigned short &newEditDistance);
 
     bool clipRightSide(
         const reference::ContigList &contigList,
+        const unsigned char *sequenceEnd,
         PackedFragmentBuffer::Index &index,
-        io::FragmentAccessor &fragment);
+        reference::ReferencePosition &newRStrandPosition,
+        unsigned short &newEditDistance);
 
 };
 

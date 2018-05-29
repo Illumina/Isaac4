@@ -56,8 +56,7 @@ TemplateDetector::TemplateDetector(
   threadTemplateBuilders_(threadTemplateBuilders),
   templateLengthDistributions_(barcodeMetadataList_.size(), TemplateLengthDistribution(detectTemplateBlockSize, mateDriftRange)),
   unprocessedClusterId_(0),
-  pendingClusterId_(0),
-  detectTemplateBlockSize_(detectTemplateBlockSize)
+  pendingClusterId_(0)
 {
 }
 
@@ -303,6 +302,11 @@ template struct InstantiateTemplates<oligo::BasicKmerType<17> >;
 template struct InstantiateTemplates<oligo::BasicKmerType<18> >;
 template struct InstantiateTemplates<oligo::BasicKmerType<19> >;
 template struct InstantiateTemplates<oligo::BasicKmerType<20> >;
+template struct InstantiateTemplates<oligo::BasicKmerType<21> >;
+template struct InstantiateTemplates<oligo::BasicKmerType<22> >;
+template struct InstantiateTemplates<oligo::BasicKmerType<23> >;
+template struct InstantiateTemplates<oligo::BasicKmerType<24> >;
+
 
 } // namespace templateDetector
 } // namespace alignemnt

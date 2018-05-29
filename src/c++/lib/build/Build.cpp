@@ -337,7 +337,6 @@ Build::Build(const std::vector<std::string> &argv,
      outputDirectory_(outputDirectory),
      maxLoaders_(maxLoaders),
      maxComputers_(maxComputers),
-     maxRealigners_(1),
      allocatedBins_(0),
      maxSavers_(maxSavers),
      bamGzipLevel_(bamGzipLevel),
@@ -349,10 +348,7 @@ Build::Build(const std::vector<std::string> &argv,
      keepDuplicates_(keepDuplicates),
      markDuplicates_(markDuplicates),
      anchorMate_(anchorMate),
-     realignGapsVigorously_(realignGapsVigorously),
-     realignDodgyFragments_(realignDodgyFragments),
      realignedGapsPerFragment_(realignedGapsPerFragment),
-     clipSemialigned_(clipSemialigned),
      alignmentCfg_(alignmentCfg),
      realignGaps_(realignGaps),
      realignMapqMin_(realignMapqMin),
@@ -480,9 +476,9 @@ uint64_t Build::estimateOptimumFragmentsPerBin(
     // reasonable amount of bins-in-progress to allow for no-delay input/compute/output overlap
 //    const unsigned minOverlap = 3;;
     // try to increase granularity so that the CPU gets efficiently utilized. Gap realigner can only
-    // use threads of following bins, let's make sure we have plenty of bins allocated so that threare
+    // use threads of following bins, let's make sure we have plenty of bins allocated so that there are
     // are always some threads ready to help with realignment
-    const unsigned minOverlap = computeThreads * 2;
+    const unsigned minOverlap = computeThreads;
     ISAAC_THREAD_CERR << "estimateOptimumFragmentsPerBin estimatedFragmentSize: " << estimatedFragmentSize << "\n";
     ISAAC_THREAD_CERR << "estimateOptimumFragmentsPerBin maxFragmentDedupedIndexBytes: " << maxFragmentDedupedIndexBytes << "\n";
     ISAAC_THREAD_CERR << "estimateOptimumFragmentsPerBin maxFragmentCompressedBytes: " << maxFragmentCompressedBytes << "\n";

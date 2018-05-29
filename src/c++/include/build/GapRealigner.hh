@@ -60,8 +60,6 @@ private:
     const unsigned gapExtendCost_;// = 0;
     static const int mismatchPercentReductionMin_ = 20;
 
-    const bool clipSemialigned_;
-
     const flowcell::BarcodeMetadataList &barcodeMetadataList_;
 
     gapRealigner::Gaps currentAttemptGaps_;
@@ -77,7 +75,6 @@ public:
         const unsigned mismatchCost,
         const unsigned gapOpenCost,
         const unsigned gapExtendCost,
-        const bool clipSemialigned,
         const flowcell::BarcodeMetadataList &barcodeMetadataList):
             realignGapsVigorously_(realignGapsVigorously),
             realignDodgyFragments_(realignDodgyFragments),
@@ -86,7 +83,6 @@ public:
             mismatchCost_(mismatchCost),
             gapOpenCost_(gapOpenCost),
             gapExtendCost_(gapExtendCost),
-            clipSemialigned_(clipSemialigned),
             barcodeMetadataList_(barcodeMetadataList)
     {
         reserve();
@@ -103,8 +99,10 @@ public:
         const gapRealigner::RealignerGaps &realignerGaps,
         const reference::ReferencePosition binStartPos,
         const reference::ReferencePosition binEndPos,
+        const io::FragmentAccessor &fragment,
         PackedFragmentBuffer::Index &index,
-        io::FragmentAccessor &fragment,
+        reference::ReferencePosition &newRStrandPosition,
+        unsigned short &newEditDistance,
         PackedFragmentBuffer &dataBuffer,
         alignment::Cigar &realignedCigars,
         const reference::ContigLists &contigLists);
@@ -113,6 +111,8 @@ public:
     static void updatePairDetails(
         const std::vector<alignment::TemplateLengthStatistics> &barcodeTemplateLengthStatistics,
         const PackedFragmentBuffer::Index &index,
+        const reference::ReferencePosition newRStrandPosition,
+        const unsigned short newEditDistance,
         io::FragmentAccessor &fragment,
         PackedFragmentBuffer &dataBuffer);
 
@@ -228,8 +228,10 @@ private:
     bool compactCigar(
         const reference::ContigList &reference,
         const reference::ReferencePosition binEndPos,
+        const io::FragmentAccessor &fragment,
         PackedFragmentBuffer::Index &index,
-        io::FragmentAccessor &fragment,
+        reference::ReferencePosition &newRStrandPosition,
+        unsigned short &newEditDistance,
         alignment::Cigar &realignedCigars);
 
     GapChoice getAlignmentCost(

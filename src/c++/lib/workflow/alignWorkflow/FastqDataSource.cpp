@@ -55,7 +55,6 @@ FastqBaseCallsSource::FastqBaseCallsSource(
     common::ThreadVector &threads) :
         tileClustersMax_(clustersAtATimeMax),
         coresMax_(coresMax),
-        barcodeMetadataList_(barcodeMetadataList),
         fastqFlowcellLayout_(fastqFlowcellLayout),
         clusterLength_(flowcell::getTotalReadLength(fastqFlowcellLayout_.getReadMetadataList()) + fastqFlowcellLayout_.getBarcodeLength() + fastqFlowcellLayout_.getReadNameLength()),
         loadedClusters_(clusterLength_),

@@ -59,7 +59,6 @@ class Build
     const boost::filesystem::path outputDirectory_;
     unsigned maxLoaders_;
     unsigned maxComputers_;
-    unsigned maxRealigners_;
     unsigned allocatedBins_;
     std::vector<unsigned> computeSlotWaitingBins_;
     const unsigned maxSavers_;
@@ -73,10 +72,7 @@ class Build
     const bool keepDuplicates_;
     const bool markDuplicates_;
     const bool anchorMate_;
-    const bool realignGapsVigorously_;
-    const bool realignDodgyFragments_;
     const unsigned realignedGapsPerFragment_;
-    const bool clipSemialigned_;
     const alignment::AlignmentCfg &alignmentCfg_;
     const build::GapRealignerMode realignGaps_;
     const unsigned realignMapqMin_;

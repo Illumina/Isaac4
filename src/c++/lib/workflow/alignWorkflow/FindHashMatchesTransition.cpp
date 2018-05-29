@@ -245,7 +245,6 @@ FindHashMatchesTransition::FindHashMatchesTransition(
     const boost::array<char, 256> &fullBclQScoreTable,
     const unsigned targetBinLength,
     const uint64_t targetBinSize,
-    const double expectedBgzfCompressionRatio,
     const bool preSortBins,
     const bool preAllocateBins,
     const std::string &binRegexString,
@@ -281,7 +280,6 @@ FindHashMatchesTransition::FindHashMatchesTransition(
     , maxGapsPerRead_(std::max<unsigned>(smitWatermanGapsMax, splitAlignments))
     , targetBinLength_(targetBinLength)
     , targetBinSize_(targetBinSize)
-    , expectedBgzfCompressionRatio_(expectedBgzfCompressionRatio)
     , keepUnaligned_(keepUnaligned)
     , preSortBins_(preSortBins)
     , preAllocateBins_(preAllocateBins)

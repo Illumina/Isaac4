@@ -92,7 +92,6 @@ private:
     static const unsigned FRAGMENT_BYTES_MAX = 10*1024;
     static const unsigned READS_MAX = 2;
     const BinIndexMap &binIndexMap_;
-    const bool preAllocateBins_;
     const uint64_t expectedBinSize_;
     alignment::BinMetadataList &binMetadataList_;
     // this is just a bunch of BinMetadata objects ready to be moved into binMetadataList_ to avoid dynamic memory allocation

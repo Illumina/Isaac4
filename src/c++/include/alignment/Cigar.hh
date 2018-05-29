@@ -302,7 +302,7 @@ public:
     static unsigned getMaxOpeations(const unsigned maxGaps)
     {
         const unsigned cigarOpsPerGap = 2; //any gap requires one following match.
-        const unsigned cigarOpsPerStructuralVariant = 4; //any gap requires one following match. Inversions need up to 3 operations to describe the breakpoint
+        const unsigned cigarOpsPerStructuralVariant = maxGaps ? 4 : 0; //any gap requires one following match. Inversions need up to 3 operations to describe the breakpoint
         const unsigned oneMatchOp = 1;
         const unsigned maxHardClipOps = 0; //iSAAC does not support had clips
         const unsigned maxSoftClipOps = 2; //one at each end
