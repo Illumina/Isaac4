@@ -308,7 +308,7 @@ void FastqReader::findQScoresEnd()
 std::size_t FastqReader::readCompressedFastq(std::istream &is, char *buffer, std::size_t amount)
 {
     const std::streamsize decompressedBytes = gzReader_.read(is, 0, buffer, amount);
-    reachedEof_ = is.eof();
+    reachedEof_ = gzReader_.isEof(is);
     ISAAC_ASSERT_MSG(-1 != decompressedBytes || reachedEof_, "Did not reach eof while unable to uncompress anymore");
     return -1 == decompressedBytes ? 0 : decompressedBytes;
 }

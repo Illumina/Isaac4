@@ -1,3 +1,9 @@
+Isaac-04.18.08.29
+* SAAC-1345 Offset table uses 64-bit integers regardless of genome length
+
+Isaac-04.18.06.15
+* SAAC-1342 Mismatching number of clusters read for r1/r2 from compressed fastq when zcat|wc -l shows number of reads match
+
 Isaac-04.18.05.23
 * SAAC-1341 Isaac runs out of file handles for bins with defaults on human with default linux ulimit -n 1024
 

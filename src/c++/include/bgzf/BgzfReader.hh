@@ -158,7 +158,7 @@ public:
 
     // this set of functions to be used for clients that own their streams
     std::size_t readMoreData(std::istream &is, char *buffer, const std::size_t capacity);
-    bool isEof(std::istream &is) {return !pendingBlockSize_ && is.eof();}
+    bool isEof(std::istream &is) const {return !pendingBlockSize_ && is.eof();}
 private:
     void readMoreDataParallel(const unsigned threadNumber, std::istream &is, char *buffer, std::size_t bufferMax, std::size_t &decompressed);
 

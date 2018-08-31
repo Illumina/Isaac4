@@ -168,6 +168,8 @@ public:
         return uncompressedTotal;
     }
 
+    bool isEof(std::istream &is) const {return !pendingBytes_ && is.eof();}
+
     /**
      * \brief Same effect as gzip_decompresor::read but avoids dynamic memory allocation by
      *        using the externally supplied buffer.

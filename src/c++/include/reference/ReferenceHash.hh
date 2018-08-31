@@ -38,7 +38,10 @@ class ReferenceHash
 public:
     typedef typename AllocatorT::template rebind<reference::ContigList::Offset> ReferenceOffsetAllocatorRebind;
     typedef typename ReferenceOffsetAllocatorRebind::other ReferenceOffsetAllocator;
-    typedef std::vector<reference::ContigList::Offset, ReferenceOffsetAllocator> Positions;
+    // for large genomes Offset type must be > 32 bit
+    typedef reference::ContigList::Offset Offset;
+    // offsets in linear genome indicating points where kmer is present
+    typedef std::vector<Offset, ReferenceOffsetAllocator> Positions;
     typedef KmerType KmerT;
     static const unsigned SEED_LENGTH = oligo::KmerTraits<KmerT>::KMER_BASES;
     typedef typename Positions::const_iterator const_iterator;
@@ -47,10 +50,11 @@ public:
 
     // the kmers are hashed into keys which are then used as indices into Offsets table
     typedef uint32_t KeyT;
-    // for large genomes Offset type must be > 32 bit
-    typedef uint64_t Offset;
     typedef typename AllocatorT::template rebind<Offset> OffsetAllocatorRebind;
     typedef typename OffsetAllocatorRebind::other OffsetAllocator;
+    // offsets in Positions indicating ranges of offsets for the kmer
+    // In reality if less than 4B kmers are unique, this one can get away with 32-bit
+    // numbers even for genomes larger than 4B bases.
     typedef std::vector<Offset, OffsetAllocator> Offsets;
 
     KeyT keyFromKmer(KmerT kmer) const

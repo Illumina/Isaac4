@@ -255,7 +255,6 @@ private:
     const unsigned maxGapsPerRead_;
     const unsigned targetBinLength_;
     const uint64_t targetBinSize_;
-    const double expectedBgzfCompressionRatio_;
     const bool keepUnaligned_;
     const bool preSortBins_;
     const bool preAllocateBins_;
