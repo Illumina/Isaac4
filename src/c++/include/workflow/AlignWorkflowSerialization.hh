@@ -63,6 +63,7 @@ void serialize(Archive &ar, BarcodeCounts &bc, const unsigned int version)
     ar & BOOST_SERIALIZATION_NVP(bc.elements_);
     ar & BOOST_SERIALIZATION_NVP(bc.gaps_);
     ar & BOOST_SERIALIZATION_NVP(bc.splits_);
+    ar & BOOST_SERIALIZATION_NVP(bc.realignableSplits_);
     ar & BOOST_SERIALIZATION_NVP(bc.cigarLength_);
     ar & BOOST_SERIALIZATION_NVP(bc.alignedBases_);
 }

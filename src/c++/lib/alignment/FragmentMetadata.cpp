@@ -240,6 +240,7 @@ void FragmentMetadata::processDeletion(
     this->smithWatermanScore +=
         -cfg.gapOpenScore_ + -std::max(cfg.minGapExtendScore_, int(length - 1) * cfg.gapExtendScore_);
     this->splitAlignment |= (length > cfg.splitGapLength_);
+    this->largeDeletion |= (length > cfg.splitGapLength_);
     currentPosition += length;
 }
 

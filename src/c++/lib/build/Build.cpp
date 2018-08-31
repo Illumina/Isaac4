@@ -628,7 +628,7 @@ bool Build::handleBinAllocationFailure(
     {
         forceTermination_ = true;
         stateChangedCondition_.notify_all();
-        // couldn't allocate our bin and not bins currently allocated. No way we will ever be able to allocate it
+        // couldn't allocate our bin and no bins currently allocated. No way we will ever be able to allocate it
         BOOST_THROW_EXCEPTION(common::ThreadingException(
             (boost::format("ERROR: Failing due to: %s blocking everything with %s : %s Error data: %s ")
                         % bin % getExceptionName(e) % e.what() % errorData).str()));

@@ -89,7 +89,7 @@ struct FragmentHeader
         nameLength_(0),
         gapCount_(0),
         editDistance_(0),
-        flags_(false, false, false, false, false, false, false, false, false, false),
+        flags_(false, false, false, false, false, false, false, false, false, false, false),
         tile_(uint64_t(0)-1),
         barcode_(0),
         barcodeSequence_(0),
@@ -139,6 +139,7 @@ struct FragmentHeader
                !fragment.getCluster().getPf(),
                bamTemplate.isProperPair(),
                fragment.splitAlignment,
+               fragment.largeDeletion,
                mate.splitAlignment),
         tile_(fragment.getCluster().getTile()),
         barcode_(barcodeIdx),
@@ -185,6 +186,7 @@ struct FragmentHeader
                !fragment.getCluster().getPf(),
                false,
                fragment.splitAlignment,
+               fragment.largeDeletion,
                false),
         tile_(fragment.getCluster().getTile()),
         barcode_(barcodeIdx),
@@ -375,11 +377,11 @@ struct FragmentHeader
     struct Flags
     {
         Flags(bool paired, bool unmapped, bool mateUnmapped, bool reverse, bool mateReverse,
-              bool secondRead, bool failFilter, bool properPair, bool splitAlignment, bool mateSplit):
+              bool secondRead, bool failFilter, bool properPair, bool splitAlignment, bool realignableSplit, bool mateSplit):
                   initialized_(true), paired_(paired), unmapped_(unmapped), mateUnmapped_(mateUnmapped),
             reverse_(reverse), mateReverse_(mateReverse), realigned_(false), secondRead_(secondRead),
             failFilter_(failFilter), properPair_(properPair), duplicate_(false),
-            splitAlignment_(splitAlignment), mateSplit_(mateSplit){}
+            splitAlignment_(splitAlignment), realignableSplit_(realignableSplit), mateSplit_(mateSplit){}
         bool initialized_ : 1;
         bool paired_ : 1;
         bool unmapped_ : 1;
@@ -392,6 +394,7 @@ struct FragmentHeader
         bool properPair_ : 1;
         bool duplicate_ : 1;
         bool splitAlignment_ :1;
+        bool realignableSplit_ :1;
         bool mateSplit_ :1;
     } flags_;
 

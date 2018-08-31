@@ -121,6 +121,7 @@ struct FragmentMetadata
     /// Orientation of the read. False is forward, true is reverse
     bool reverse:1;
     bool splitAlignment:1;
+    bool largeDeletion:1;
     bool decoyAlignment:1;
     // number of equivalent alignments when discovered by seeds if this one is best. 1 means this is best unique alignmet. Otherwise undetermined
     unsigned repeatCount;
@@ -350,7 +351,8 @@ struct FragmentMetadata
      */
     FragmentMetadata():
         cluster(0), contigId(reference::ReferencePosition::MAX_CONTIG_ID), position(0), lowClipped(0), highClipped(0), adapterClipped_(0),
-        rStrandPos(reference::ReferencePosition::NoMatch), readIndex(0), reverse(false), splitAlignment(false), decoyAlignment(false), repeatCount(0), cigarOffset(0),
+        rStrandPos(reference::ReferencePosition::NoMatch), readIndex(0), reverse(false), splitAlignment(false),
+        largeDeletion(false), decoyAlignment(false), repeatCount(0), cigarOffset(0),
         cigarLength(0), cigarBuffer(0), mismatchCount(0), uncheckedSeeds(0), gapCount(0), editDistance(0), logProbability(0.0),
         firstAnchor_(0, 0, false),
         lastAnchor_(0, 0, false),
@@ -597,7 +599,11 @@ struct FragmentMetadata
     /**
      ** \brief Marks read as unaligned.
      **/
-    void setUnaligned() {cigarBuffer = 0; cigarLength = 0; alignmentScore = UNKNOWN_ALIGNMENT_SCORE; mapQ = UNKNOWN_MAPQ; reverse = false, splitAlignment = false;}
+    void setUnaligned()
+    {
+        cigarBuffer = 0; cigarLength = 0; alignmentScore = UNKNOWN_ALIGNMENT_SCORE; mapQ = UNKNOWN_MAPQ;
+        reverse = false, splitAlignment = false; largeDeletion = false;
+    }
 
     /**
      ** \brief Marks read as something that has no match position. This is different from setUnaligned

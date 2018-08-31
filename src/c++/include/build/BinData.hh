@@ -92,6 +92,7 @@ public:
                 contigMap, contigLists, forcedDodgyAlignmentScore, flowCellLayoutList, includeTags, pessimisticMapQ,
                 splitGapLength, splitInfoList_)
     {
+        ISAAC_TRACE_STAT("Before data_.reserve ");
         // fragments get loaded into the data_ that don't belong. Next thing that happens is BinLoader
         // realizing that they don't belong and resetting the size back, but in between it needs
         // a bit of extra ram to avoid going over data_.capacity.
@@ -100,6 +101,7 @@ public:
 
 
         BaseType::reserve(bin_.getTotalElements() * 2);
+        ISAAC_TRACE_STAT("Before seIdx_.reserve ");
         seIdx_.reserve(bin_.getSeIdxElements());
         rIdx_.reserve(bin_.getRIdxElements());
         fIdx_.reserve(bin_.getFIdxElements());
@@ -107,6 +109,9 @@ public:
         {
             reserveGaps(bin_, knownIndels_, barcodeMetadataList);
         }
+
+        ISAAC_TRACE_STAT("Before additionalCigars_.reserve ");
+
         // assume each split read will not have any noticeable amount of extra elements above of what's listed below
         // translocation gaps with inversion require up to 7 CIGAR components: SOFT_CLIP,ALIGN,FLIP,CONTIG,DELETE,ALIGN,SOFTCLIP
         // so, when this gets broken up, each leftover will have no more than 5 components
@@ -119,6 +124,8 @@ public:
                 // assume that to introduce k gaps one will need to have k+1 operations between the gaps
                 (realignedGapsPerFragment + realignedGapsPerFragment + 1)));
 
+        ISAAC_TRACE_STAT("Before splitInfoList_.reserve ");
+        ISAAC_THREAD_CERR << "tada" << std::endl;
         // assume each gap produces coverage of realignments and then gets split. This is extremely pessimistic and happens only for
         // --split-gap_length == 1. Now, say all variants in human are gaps. Then 3M gaps with 60 being coverage and only one bin covering
         // the entire genome, this will take about 3M*60*sizeof(SplitInfo) ~= 6G. However in reality we aim to break genome down

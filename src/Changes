@@ -1,3 +1,5 @@
+* SAAC-1346 Overestimation of splits in a bin due to large coverage spikes
+
 Isaac-04.18.08.29
 * SAAC-1345 Offset table uses 64-bit integers regardless of genome length
 

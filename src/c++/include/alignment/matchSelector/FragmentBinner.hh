@@ -233,7 +233,7 @@ private:
     void reopenBin(const BinMetadata &binMetadata, std::size_t file);
     void openBinFile(const BinMetadata &binMetadata, std::size_t file);
     void registerFragment(const io::FragmentAccessor& fragment,
-                          const bool splitRead, BinMetadata& binMetadata);
+                          const bool splitRead, const bool realignableSplit, BinMetadata& binMetadata);
 };
 
 } // namespace matchSelector
