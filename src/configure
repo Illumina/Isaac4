@@ -32,7 +32,7 @@ export CXX=${CXX:="g++"}
 
 ISAAC_DEFAULT_NUMA_DIR=/usr
 
-isaac_read_length_max=400
+isaac_read_length_max=600
 isaac_contig_length_min=0x10000
 isaac_genome_offset_max=0x0ffffffff
 

@@ -38,8 +38,8 @@ set(iSAAC_STRING "Isaac")
 # the branch builds will never upgrade the properly released version 
 set(iSAAC_VERSION_MAJOR 04)
 set(iSAAC_VERSION_MINOR 18)
-set(iSAAC_VERSION_PATCH 08)
-set(iSAAC_VERSION_DEVEL 29)
+set(iSAAC_VERSION_PATCH 11)
+set(iSAAC_VERSION_DEVEL 09)
 set(iSAAC_VERSION_FULL "${iSAAC_STRING}-${iSAAC_VERSION_MAJOR}.${iSAAC_VERSION_MINOR}.${iSAAC_VERSION_PATCH}.${iSAAC_VERSION_DEVEL}")
 
 if (CPACK_GENERATOR)
@@ -129,7 +129,7 @@ set (LIBXSLT_REDIST_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../redist")
 set (iSAAC_LIBEXSLT_VERSION 0.8.19)
 
 
-set (ISAAC_READ_LENGTH_MAX 400 CACHE STRING "Maximum read lengt supported by the aligner")
+set (ISAAC_READ_LENGTH_MAX 600 CACHE STRING "Maximum read lengt supported by the aligner")
 set (ISAAC_CONTIG_LENGTH_MIN 0x10000 CACHE STRING "Minimum length assumed for a contig")
 set (ISAAC_GENOME_OFFSET_MAX 0x0ffffffff CACHE STRING "Maximum total length of all contigs combined")
 

@@ -40,7 +40,7 @@ inline std::ostream &operator<<(std::ostream &os, const BinMetadata &binMetadata
 
 struct BarcodeCounts
 {
-    BarcodeCounts() : elements_(0), gaps_(0), splits_(0), cigarLength_(0), alignedBases_(0){}
+    BarcodeCounts() : elements_(0), gaps_(0), splits_(0), realignableSplits_(0), cigarLength_(0), alignedBases_(0){}
     // total number of elements in the bin barcode
     uint64_t elements_;
     // total number of gaps in the bin barcode reads
@@ -48,6 +48,8 @@ struct BarcodeCounts
     // total number of splits in the bin barcode reads. Splits are count normally once except for FLIPs which could
     // count twice unless FLIP is not followed by CONTIG or position adjustment
     uint64_t splits_;
+    // splits that potentially can be realigned against. Currently large deletions only
+    uint64_t realignableSplits_;
     // sum of all fragment cigar lengths in the bin barcode.
     uint64_t cigarLength_;
     // sum of all alignedBases
@@ -58,6 +60,7 @@ struct BarcodeCounts
         elements_ += that.elements_;
         gaps_ += that.gaps_;
         splits_ += that.splits_;
+        realignableSplits_ += that.realignableSplits_;
         cigarLength_ += that.cigarLength_;
         alignedBases_ += that.alignedBases_;
         return *this;
@@ -72,7 +75,7 @@ struct BarcodeCounts
     friend std::ostream &operator<<(std::ostream &os, const BarcodeCounts &bc)
     {
         return os << "BarcodeCounts(" << bc.elements_ << "e " << bc.gaps_ << "g " <<
-            bc.splits_ << "s " << bc.cigarLength_ << "cl " << bc.alignedBases_ << "ab)";
+            bc.splits_ << "s " << bc.realignableSplits_ << "rs " << bc.cigarLength_ << "cl " << bc.alignedBases_ << "ab)";
     }
 
 };
@@ -305,9 +308,10 @@ public:
         barcodeBreakdown_.at(barcodeIdx).gaps_ += by;
     }
 
-    void incrementSplitCount(const reference::ReferencePosition pos, const uint64_t by, const unsigned barcodeIdx)
+    void incrementSplitCount(const reference::ReferencePosition pos, const bool realignableSplit, const unsigned barcodeIdx)
     {
-        barcodeBreakdown_.at(barcodeIdx).splits_ += by;
+        barcodeBreakdown_.at(barcodeIdx).splits_ += 1;
+        barcodeBreakdown_.at(barcodeIdx).realignableSplits_ += realignableSplit;
     }
 
     void incrementCigarLength(
@@ -353,16 +357,34 @@ public:
     uint64_t getEstimatedSplitCount(bool assumeRealignment) const
     {
         uint64_t ret = 0;
-        for (const BarcodeCounts &b : barcodeBreakdown_)
+
+        if (!assumeRealignment || !getLength())
         {
-            ret +=
-                (assumeRealignment && getLength() ?
-                    // barcode coverage in the bin if assuming (pessimistic) that splits will get realigned
-                    std::max<uint64_t>(1, (b.alignedBases_ / getLength())) :
+            for (const BarcodeCounts &b : barcodeBreakdown_)
+            {
+                ret += b.splits_;
+            }
+        }
+        else
+        {
+            // use actual barcode coverage in the bin to estimate
+            for (const BarcodeCounts &b : barcodeBreakdown_)
+            {
+                const uint64_t coverage = std::max<uint64_t>(1, (b.alignedBases_ / getLength()));
+
+                const uint64_t estimatedSplits = (b.splits_ - b.realignableSplits_) +
+                    // barcode coverage in the bin if assuming (pessimistic) that all splits will get realigned
+                    coverage
                     // 1 if just counting the existing splits is needed
-                    1) *
-                // times the splits
-                b.splits_;
+                    *
+                    // times the splits
+                    b.realignableSplits_;
+
+                // multiplying number of splits by coverage works if splits are rare. If there are multiple splits in a
+                // pileup, this results in a gross overestimation. In such case just assume that each fragment in the bin gets
+                // split once.
+                ret += std::min(b.elements_, estimatedSplits);
+            }
         }
 
         return ret;

@@ -50,6 +50,7 @@ FragmentBinner::FragmentBinner(
 
 void FragmentBinner::registerFragment(const io::FragmentAccessor& fragment,
                                       const bool splitRead,
+                                      const bool realignableSplit,
                                       BinMetadata& binMetadata)
 {
     if (!fragment.isAligned() && !fragment.isMateAligned())
@@ -79,7 +80,8 @@ void FragmentBinner::registerFragment(const io::FragmentAccessor& fragment,
 
         if (splitRead)
         {
-            binMetadata.incrementSplitCount(fragment.fStrandPosition_, fragment.gapCount_, fragment.barcode_);
+            binMetadata.incrementSplitCount(fragment.fStrandPosition_, realignableSplit, fragment.barcode_);
+            binMetadata.incrementGapCount(fragment.fStrandPosition_, realignableSplit, fragment.barcode_);
         }
         else
         {
@@ -161,6 +163,7 @@ void FragmentBinner::flushSingle(
                 // looks like some historical check for unaligned bin. Currently 
                 // results in massive undercounting of split alignments. Commented out: //0 != i &&
                 fragment.isAligned() && fragment.flags_.splitAlignment_,
+                fragment.isAligned() && fragment.flags_.realignableSplit_,
                 binMetadataList[lastBinIndex]);
     }
 
