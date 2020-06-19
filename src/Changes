@@ -1,3 +1,6 @@
+Isaac-04.20.06.19
+* SAAC-1352 ubuntu 20.04 compatibility fixes
+
 Isaac-04.18.11.09
 * SAAC-1347 Default max read length to allow for 600
 * SAAC-1346 Overestimation of splits in a bin due to large coverage spikes
