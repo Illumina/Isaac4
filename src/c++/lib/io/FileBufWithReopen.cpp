@@ -30,7 +30,7 @@ extern const std::vector<const char*> iosBaseToStdioOpenModesTranslationTable = 
                         // inspired by /usr/include/c++/4.3.2/fstream
                         // | ios_base Flag combination      |
                         // |binary  in  out  trunc  app     |
-            (0      )   // |                                |
+            (nullptr)   // |                                |
             ("a"    )   // |                         +      |
             (0      )   // |                   +            |
             (0      )   // |                   +     +      |

@@ -71,7 +71,7 @@ TemplateBuilder::TemplateBuilder(
     , scatterRepeats_(scatterRepeats)
     , rescueShadows_(rescueShadows)
     , dodgyAlignmentScore_(dodgyAlignmentScore)
-    , anomalousPairHandicap_(pow10(double(anomalousPairHandicap) / 10.0) - 1.0)//anomalousPairHandicap)
+    , anomalousPairHandicap_(exp10(double(anomalousPairHandicap) / 10.0) - 1.0)//anomalousPairHandicap)
     , smitWatermanGapsMax_(smitWatermanGapsMax)
     , splitAlignments_(splitAlignments)
     , alignmentCfg_(alignmentCfg)
