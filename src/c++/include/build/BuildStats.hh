@@ -69,6 +69,8 @@ public:
     {
     }
 
+    BuildStats(const BuildStats&) = default;
+
     void incrementTotalFragments(
         const unsigned binIndex,
         const unsigned barcodeIndex)

@@ -95,14 +95,14 @@ private:
             BOOST_THROW_EXCEPTION(BgzfInflateException(ret, strm_));
         }
     }
-    static voidpf zalloc OF((voidpf opaque, uInt items, uInt size))
+    static voidpf zalloc (voidpf opaque, uInt items, uInt size)
     {
         ISAAC_ASSERT_MSG(reinterpret_cast<BgzfReader*>(opaque)->zalbufferFree, "Unexpected too many zalloc calls");
         ISAAC_ASSERT_MSG(sizeof(reinterpret_cast<BgzfReader*>(opaque)->zalbuffer[reinterpret_cast<BgzfReader*>(opaque)->zalbufferFree]) >= items * size, "Unexpected buffer size passed to zalloc : size=" << size << " items=" << items);
         --reinterpret_cast<BgzfReader*>(opaque)->zalbufferFree;
         return reinterpret_cast<BgzfReader*>(opaque)->zalbuffer[reinterpret_cast<BgzfReader*>(opaque)->zalbufferFree];
     }
-    static void zfree OF((voidpf opaque, voidpf address))
+    static void zfree (voidpf opaque, voidpf address)
     {
 //        ISAAC_ASSERT_MSG(!reinterpret_cast<InflateGzipDecompressor*>(opaque)->zalbufferFree, "Unexpected unmatched zfree call");
 //        ISAAC_ASSERT_MSG(reinterpret_cast<InflateGzipDecompressor*>(opaque)->zalbuffer == address, "Unexpected address passed to zfree");

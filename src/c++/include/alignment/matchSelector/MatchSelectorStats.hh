@@ -62,6 +62,8 @@ public:
         ISAAC_THREAD_CERR << "Allocating " << tileBarcodeStatsCount << " tile barcode stats done. Total size is " << tileBarcodeStats_.capacity() * sizeof(TileBarcodeStats) << " bytes."<< std::endl;
     }
 
+    MatchSelectorStats(const MatchSelectorStats&) = default;
+
     void reset()
     {
         std::for_each(tileStats_.begin(), tileStats_.end(),
