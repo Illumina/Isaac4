@@ -292,7 +292,7 @@ private:
                   temporaryBuffer.begin());
         return strm.avail_in;
     }
-    static voidpf zalloc OF((voidpf opaque, uInt items, uInt size))
+    static voidpf zalloc (voidpf opaque, uInt items, uInt size)
     {
         ISAAC_ASSERT_MSG(!reinterpret_cast<InflateGzipDecompressor*>(opaque)->allocationsBlocked_, "TODO: implement sensible memory management here");
         ISAAC_ASSERT_MSG(reinterpret_cast<InflateGzipDecompressor*>(opaque)->zalbufferFree, "Unexpected too many zalloc calls");
@@ -300,7 +300,7 @@ private:
         --reinterpret_cast<InflateGzipDecompressor*>(opaque)->zalbufferFree;
         return reinterpret_cast<InflateGzipDecompressor*>(opaque)->zalbuffer[reinterpret_cast<InflateGzipDecompressor*>(opaque)->zalbufferFree];
     }
-    static void zfree OF((voidpf opaque, voidpf address))
+    static void zfree (voidpf opaque, voidpf address)
     {
         // this is the memory management for poor. The assumption is that there will be no more than ALLOCATIONS_MAX zalloc calls and that
         // ALLOCATIONS_MAX zfree calls will occur without any zalloc calls in between them.
